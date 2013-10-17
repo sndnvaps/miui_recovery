@@ -284,6 +284,30 @@ copy_log_file(const char* source, const char* destination, int append) {
     }
 }
 
+// Rename last_log -> last_log.1 -> last_log.2 -> ... -> last_log.$max
+// Overwrite any existing last_log.$max.
+static void rotate_last_logs(int max) {
+	char oldfn[256];
+	char newfn[256];
+
+	int i;
+	for (i = max - 1; i >= 0; --i) {
+		//snprintf(oldfn, 255, (i==0) ? LAST_LOG_FILE : (LAST_LOG_FILE".%d"), i);
+		//snprintf(newfn, 255, LAST_LOG_FILE".%d", i+1);
+		if (i == 0) {
+			snprintf(oldfn, 255, "%s", LAST_LOG_FILE);
+		} else {
+		snprintf(oldfn, 255, "%s.%d", LAST_LOG_FILE, i);
+		}
+		snprintf(newfn, 255, "%s.%d", LAST_LOG_FILE, i+1);
+		// ignore errors
+		rename(oldfn, newfn);
+	}
+}
+
+
+
+
 
 // clear the recovery command and prepare to boot a (hopefully working) system,
 // copy our log file to cache as well (for the system to read), and
@@ -813,6 +837,8 @@ int main(int argc, char **argv) {
     device_ui_init();
     load_volume_table();
     create_fstab();
+    ensure_path_mounted(LAST_LOG_FILE);
+    rotate_last_logs(5);
     get_args(&argc, &argv);
 
     struct bootloader_message boot;
