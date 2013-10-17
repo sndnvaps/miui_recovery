@@ -111,16 +111,19 @@ static STATUS root_device_item_show(menuUnit *p) {
 	if(RET_YES == miui_confirm(3, p->name, p->desc, p->icon)) {
 		miui_busy_process();
 		switch(p->result) {
+			/*
 			case ROOT_DEVICE:
 				miuiIntent_send(INTENT_MOUNT, 1 , "/system");
 				miuiIntent_send(INTENT_ROOT, 1, "root_device");
 				miuiIntent_send(INTENT_UNMOUNT, 1 , "/system");
 				break;
+				*/
 			case DISABLE_OFFICAL_REC:
 				miuiIntent_send(INTENT_MOUNT, 1, "/system");
 				miuiIntent_send(INTENT_ROOT, 1, "un_of_rec");
 				miuiIntent_send(INTENT_UNMOUNT, 1, "/system");
 				break;
+				
 			case FREE_SDCARD_SPACE:
 				miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
 				miuiIntent_send(INTENT_ROOT, 1, "dedupe_gc");
@@ -441,6 +444,7 @@ struct _menuUnit* root_ui_init() {
 	md5_node = tmp;
 */
         //root device 
+	/*
 	tmp = common_ui_init();
 	return_null_if_fail(tmp != NULL);
 	strncpy(tmp->name, "<~root.device>", MENU_LEN);
@@ -448,7 +452,7 @@ struct _menuUnit* root_ui_init() {
 	tmp->result = ROOT_DEVICE;
 	tmp->show = &root_device_item_show;
 	assert_if_fail(menuNode_add(p,tmp) == RET_OK);
-
+         */
 	 //fix permission
          tmp = common_ui_init();
 	 menuUnit_set_name(tmp, "<~tool.permission.name>"); 
@@ -456,7 +460,8 @@ struct _menuUnit* root_ui_init() {
          menuUnit_set_show(tmp, &permission_menu_show);
          assert_if_fail(menuNode_add(p, tmp) == RET_OK);
 
-	//root disable_restore_official_recovery 	
+	//root disable_restore_official_recovery 
+		
 	tmp = common_ui_init();
 	return_null_if_fail(tmp != NULL);
 	strncpy(tmp->name, "<~root.un_of_rec>", MENU_LEN);
