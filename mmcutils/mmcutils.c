@@ -38,7 +38,7 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <sys/mount.h>  // for _IOW, _IOR, mount()
-
+#include <stdbool.h> // for bool 
 #include "mmcutils.h"
 
 unsigned ext3_count = 0;
@@ -71,6 +71,12 @@ static MmcState g_mmc_state = {
 
 #define MMC_DEVICENAME "/dev/block/mmcblk0"
 
+#define MTK_DUMCHAR_INFO "/proc/dumchar_info" 
+bool Is_MTK_Platform();
+//mtk platform 
+//boot partition size = 6MB
+//recovery partition size = 6MB
+//
 static void
 mmc_partition_name (MmcPartition *mbr, unsigned int type) {
     switch(type)
@@ -227,6 +233,18 @@ ERROR1:
 ERROR2:
     return ret;
 }
+
+
+bool Is_MTK_Platform() {
+	struct stat st;
+	if (stat(MTK_DUMCHAR_INFO,&st) == 0) {
+		return true;
+	}
+
+	return false;
+}
+
+
 
 int
 mmc_scan_partitions() {
@@ -439,7 +457,13 @@ mmc_raw_copy (const MmcPartition *partition, char *in_file) {
         goto ERROR2;
 
     fseek(in, 0L, SEEK_END);
+
+    if (!Is_MTK_Platform()) { // not mtk platform , 
     sz = ftell(in);
+    } else {
+	    sz = 1048576*6;
+    }
+
     fseek(in, 0L, SEEK_SET);
 
     if (sz % 512)
@@ -490,7 +514,11 @@ mmc_raw_dump_internal (const char* in_file, const char *out_file) {
         goto ERROR2;
 
     fseek(in, 0L, SEEK_END);
-    sz = ftell(in);
+    if (! Is_MTK_Platform()) { // not the mtk platform
+	    sz = ftell(in);
+    } else {
+	    sz = 1048576*6;
+    }
     fseek(in, 0L, SEEK_SET);
 
     if (sz % 512)
