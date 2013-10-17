@@ -1,0 +1,14 @@
+LOCAL_PATH := $(call my-dir)
+include $(CLEAR_VARS)
+LOCAL_MODULE := install.png
+LOCAL_MODULE_TAGS := eng
+LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/res/icons
+ifneq ($(TARGET_DEVICE_WIDTH),)
+	LOCAL_SRC_FILES := install_$(TARGET_DEVICE_WIDTH).png
+else
+	LOCAL_SRC_FILES := default.png
+endif
+include $(BUILD_PREBUILT)
+
+
