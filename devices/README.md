@@ -17,7 +17,7 @@ init.conf
 ```
 可以参考下面的例子:
 
-```makefile
+```
 #这个文件是device.conf
 ini_set("customkeycode_up",     "115");                                 
 ini_set("customkeycode_down",   "114");
@@ -32,7 +32,7 @@ ini_set("rom_date", "2013-09-22");
 ini_set("rom_author", "GTO LaoYang");
 ```
 
-```makefile
+```
 #这个文件是init.conf
 #set usb storage 
 ini_set("lun_file","/sys/devices/platform/msm_hsusb/gadget/lun");
