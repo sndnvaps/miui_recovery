@@ -60,12 +60,18 @@ extern struct selabel_handle * sehandle = NULL;
 static const struct option OPTIONS[] = {
   { "send_intent", required_argument, NULL, 's' },
   { "update_package", required_argument, NULL, 'u' },
+  { "user_data_update_package", required_argument, NULL, 'd' },
   { "wipe_data", no_argument, NULL, 'w' },
   { "wipe_cache", no_argument, NULL, 'c' },
   { "show_text", no_argument, NULL, 't' },
+  { "update-ubuntu", no_argument, NULL, 'v' },
   { NULL, 0, NULL, 0 },
 };
 
+
+static const char *UBUNTU_COMMAND_FILE = "/cache/recovery/ubuntu_command";
+static const char *UBUNTU_ARGUMENT = "--update-ubuntu";
+static const char *UBUNTU_UPDATE_SCRIPT = "/sbin/system-image-upgrader";
 static const char *COMMAND_FILE = "/cache/recovery/command";
 static const char *INTENT_FILE = "/cache/recovery/intent";
 static const char *LOG_FILE = "/cache/recovery/log";
@@ -76,7 +82,8 @@ static const char *SDCARD_ROOT = "/sdcard";
 static const char *TEMPORARY_LOG_FILE = "/tmp/miui_recovery.log";
 static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
-
+static const char *AUTODEPLOY_PACKAGE_FILE = "/sdcard/autodeploy.zip";
+static const char *AUTODEPLOY_PACKAGE_FILE_MULTI = "/sdcard/0/autodeploy.zip";
 
 
 /*
@@ -197,6 +204,25 @@ get_args(int *argc, char ***argv) {
             LOGE("Bad boot message\n\"%.20s\"\n", boot.recovery);
         }
     }
+
+
+    // ---- if that doesn't work, try Ubuntu command file
+    if (*argc <= 1) {
+	    FILE *fp = fopen_path(UBUNTU_COMMAND_FILE, "r");
+	    if (fp != NULL) {
+		    //there is Ubuntu command file, use it 
+		    // there is no need to read file content for now
+	        check_and_fclose(fp, UBUNTU_COMMAND_FILE);
+		char *argv0 = (*argv)[0];
+		*argv = (char **)malloc(sizeof(char *) * MAX_ARGS);
+		//store arguments
+		(*argv)[0] = argv0; //use the same program name
+		(*argv)[1] = UBUNTU_ARGUMENT;
+		*argc = 2;
+		LOGI("Got argruments from %\n", UBUNTU_COMMAND_FILE);
+	    }
+    }
+
 
     // --- if that doesn't work, try the command file
     if (*argc <= 1) {
@@ -691,6 +717,26 @@ print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
 }
 
+static void try_autodeploy(const char *path) {
+	int status = INSTALL_SUCCESS;
+	
+	ensure_path_mounted(path);
+	if (access(path, F_OK) != -1) {
+		 miuiIntent_send(INTENT_INSTALL, 3, path,"0", "0");
+		 //if echo 0 ,don't print success dialog 
+                 status = miuiIntent_result_get_int();
+		 if (status != INSTALL_SUCCESS) 
+			 ui_print("Installation aborted. \n");
+		 if (unlink(path) && errno != ENOENT) {
+			 LOGW("Can't unlink %s\n", path);
+		 }
+		 finish_recovery(NULL);
+		 sync();
+		 android_reboot(ANDROID_RB_RESTART, 0, 0);
+	}
+}
+
+
 static void setup_adbd() {
 	struct stat st;
 	static char* key_src = "/data/misc/adb/adb_keys";
@@ -850,17 +896,29 @@ int main(int argc, char **argv) {
     //const char *update_package = NULL;
     char *update_package = NULL;
     char *send_intent = NULL;
+    char *update_ubuntu_package = NULL;
+    char *user_data_update_package = NULL;
     int wipe_data = 0, wipe_cache = 0;
   //  int sideload = 0;
+
+    ui_print("Check for autodeploy.zip\n");
+    try_autodeploy(AUTODEPLOY_PACKAGE_FILE);
+    try_autodeploy(AUTODEPLOY_PACKAGE_FILE_MULTI);
+    ui_print("autodeploy.zip not found.\n");
+
+    LOGI("Checking arguments. \n");
    root_device root;
     int arg;
+    char tmpbuf[256];
     while ((arg = getopt_long(argc, argv, "", OPTIONS, NULL)) != -1) {
         switch (arg) {
         case 'p': previous_runs = atoi(optarg); break;
         case 's': send_intent = optarg; break;
         case 'u': update_package = optarg; break;
+	case 'd': update_data_update_package = optarg; break;
         case 'w': wipe_data = wipe_cache = 1; break;
         case 'c': wipe_cache = 1; break;
+	case 'v': update_ubuntu_package = UBUNTU_PACKAGE_SCRIPT; break;
         //case 't': ui_show_text(1); break;
         case '?':
             LOGE("Invalid command argument\n");
@@ -903,6 +961,20 @@ int main(int argc, char **argv) {
         //if echo 0 ,don't print success dialog 
         status = miuiIntent_result_get_int();
         if (status != INSTALL_SUCCESS) ui_print("Installation aborted.\n");
+    } else if (update_ubuntu_package != NULL) {
+	    LOGI("Performing Ubuntu update");
+	    ui_set_background(BACKGROUND_ICON_INSTALLING);
+	    snprintf(tmpbuf, 255, "<#selectbg_g><b>%s</b></#>",
+			    "Installing Ubuntu update");
+	    miuiInstall_set_text(tmpbuf);
+	    char tmp[PATH_MAX];
+	    snprintf(tmp, PATH_MAX, "%s %s", UBUNTU_UPDATE_SCRIPT, UBUNTU_COMMAND_FILE );
+	   miuiIntent_sent(INTENT_SYSTEM, tmp);
+	   LOGI("Ubuntu update complete");
+	    snprintf(tmpbuf, 255, "<#selectbg_g><b>%s</b></#>",
+			    "Ubuntu update complete");
+	    miuiInstall_set_text(tmpbuf); 
+    
     } else if (wipe_data) {
         if (device_wipe_data()) status = INSTALL_ERROR;
         if (erase_volume("/data")) status = INSTALL_ERROR;
@@ -932,12 +1004,15 @@ int main(int argc, char **argv) {
 			LOGE("Running openrecoveryscript Fail\n");
 		}
 	}
-
-
-
-
-
+    } 
+     if (user_data_update_package != NULL) {
+	     	 miuiIntent_send(INTENT_INSTALL, 3, user_data_update_package,"0", "0");
+		 //if echo 0 ,don't print success dialog 
+                 status = miuiIntent_result_get_int();
+		 if (status != INSTALL_SUCCESS) 
+			 ui_print("Installation aborted. \n");
     }
+
     
     if (status != INSTALL_SUCCESS) device_main_ui_show();//show menu
     device_main_ui_release();

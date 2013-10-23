@@ -1,8 +1,16 @@
+
+
+#support ubuntu-touch 
+
+
 EN README:
 
 hold the miui recovery source code
+
 modify by Gaojiquan LaoYang
+
 port recovery binary to c++
+
 now can build on CM10.1 source code
 
 #support functions

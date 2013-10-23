@@ -1,0 +1,274 @@
+#!/sbin/sh
+set -e
+
+if [ ! -e "$1" ]; then
+    echo "Command file doesn't exist: $1"
+    exit 1
+fi
+mv $1 $1.applying
+COMMAND_FILE=$1.applying
+
+REMOVE_LIST="$COMMAND_FILE"
+
+echo "Starting image upgrader: $(date)"
+
+# Functions
+verify_signature() {
+    # $1 => validation keyring name
+    # $2 => path to validate
+
+    if [ ! -e $2 ]; then
+        echo "File doesn't exist: $2"
+        return 1
+    fi
+
+    # Check against the blacklist
+    if [ -e /tmp/system-image/blacklist/pubring.gpg ]; then
+        export GNUPGHOME=/tmp/system-image/blacklist/
+        if gpg --verify $2 >/dev/null 2>&1; then
+            echo "File signed by a blacklisted key: $2"
+            return 1
+        fi
+    fi
+
+    # Check against the keyring
+    export GNUPGHOME=/tmp/system-image/$1/
+    if [ ! -e "$GNUPGHOME" ]; then
+        echo "Keyring doesn't exist: $1"
+        return 1
+    fi
+
+    if gpg --verify $2 >/dev/null 2>&1; then
+        return 0
+    fi
+}
+
+install_keyring() {
+    # $1 => full path to tarball
+    # $2 => full path to signature
+
+    # Some basic checks
+    if [ ! -e "$1" ] || [ ! -e "$2" ]; then
+        echo "Missing keyring files: $1 => $2"
+        return 1
+    fi
+
+    # Unpacking
+    TMPDIR=$(mktemp -d)
+    cd $TMPDIR
+    cat $1 | unxz | tar xf -
+    if [ ! -e keyring.json ] || [ ! -e keyring.gpg ]; then
+        rm -Rf $TMPDIR
+        echo "Invalid keyring: $1"
+        return 1
+    fi
+
+    # Extract the expiry
+    keyring_expiry=$(grep "^    \"expiry\": " keyring.json | cut -d: -f2 | sed -e "s/[ \",]//g")
+    if [ -n "$keyring_expiry" ] && [ "$keyring_expiry" -lt "$(date +%s)" ]; then
+        rm -Rf $TMPDIR
+        echo "Keyring expired: $1"
+        return 1
+    fi
+
+    # Extract the keyring type
+    keyring_type=$(grep "^    \"type\": " keyring.json | cut -d: -f2 | sed -e "s/[, \"]//g")
+    if [ -z "$keyring_type" ]; then
+        rm -Rf $TMPDIR
+        echo "Missing keyring type: $1"
+        return 1
+    fi
+
+    if [ -e /tmp/system-image/$keyring_type ]; then
+        rm -Rf $TMPDIR
+        echo "Keyring already loaded: $1"
+        return 1
+    fi
+
+    signer="unknown"
+    case "$keyring_type" in
+        archive-master)
+            signer=""
+        ;;
+
+        image-master)
+            signer="archive-master"
+        ;;
+
+        image-signing|blacklist)
+            signer="image-master"
+        ;;
+
+        device-signing)
+            signer="image-signing"
+        ;;
+    esac
+
+    if [ -n "$signer" ] && ! verify_signature $signer $2; then
+        rm -Rf $TMPDIR
+        echo "Invalid signature: $1"
+        return 1
+    fi
+
+    mkdir /tmp/system-image/$keyring_type
+    chmod 700 /tmp/system-image/$keyring_type
+    mv $TMPDIR/keyring.gpg /tmp/system-image/$keyring_type/pubring.gpg
+    chmod 600 /tmp/system-image/$keyring_type/pubring.gpg
+    chown 0:0 /tmp/system-image/$keyring_type/pubring.gpg
+    rm -Rf $TMPDIR
+    return 0
+}
+
+# Initialize GPG
+rm -Rf /tmp/system-image
+mkdir -p /tmp/system-image
+if [ -e /etc/system-image/archive-master.tar.xz ]; then
+    echo "Loading keyring: archive-master.tar.xz"
+    install_keyring /etc/system-image/archive-master.tar.xz /etc/system-image/archive-master.tar.xz.asc
+fi
+
+# Process the command file
+FULL_IMAGE=0
+echo "Processing the command file"
+while read line
+do
+    set -- $line
+    case "$1" in
+        format)
+            echo "Formating: $2"
+            case "$2" in
+                system)
+                    FULL_IMAGE=1
+                    rm -f /data/system.img
+                    dd if=/dev/zero of=/data/system.img seek=500K bs=4096 count=0
+                    mkfs.ext2 -F /data/system.img
+                ;;
+
+                data)
+                    for entry in /data/*; do
+                        if [ "$entry" != "system.img" ]; then
+                            rm -Rf $entry
+                        fi
+                    done
+                ;;
+
+                *)
+                    echo "Unknown format target: $2"
+                ;;
+            esac
+        ;;
+
+        load_keyring)
+            if [ ! -e "/cache/recovery/$2" ] || [ ! -e "/cache/recovery/$3" ]; then
+                echo "Skipping missing file: $2"
+                continue
+            fi
+            REMOVE_LIST="$REMOVE_LIST /cache/recovery/$2 /cache/recovery/$3"
+
+            echo "Loading keyring: $2"
+            install_keyring /cache/recovery/$2 /cache/recovery/$3
+
+            if [ -e /tmp/system-image/image-master/pubring.gpg ] && \
+               [ ! -e /tmp/system-image/blacklist/pubring.gpg ] && \
+               [ -e /data/system-data/var/lib/system-image/blacklist.tar.xz ] && \
+               [ -e /data/system-data/var/lib/system-image/blacklist.tar.xz.asc ]; then
+                echo "Loading blacklist keyring"
+                install_keyring /data/system-data/var/lib/system-image/blacklist.tar.xz /data/system-data/var/lib/system-image/blacklist.tar.xz.asc
+            fi
+        ;;
+
+        mount)
+            case "$2" in
+                system)
+                    mkdir -p /cache/system
+                    mount -o loop /data/system.img /cache/system/
+                ;;
+
+                *)
+                    echo "Unknown mount target: $2"
+                ;;
+            esac
+        ;;
+
+        unmount)
+            case "$2" in
+                system)
+                    umount /cache/system
+                    rmdir /cache/system
+                ;;
+
+                *)
+                    echo "Unknown mount target: $2"
+                ;;
+            esac
+        ;;
+
+        update)
+            if [ ! -e "/cache/recovery/$2" ] || [ ! -e "/cache/recovery/$3" ]; then
+                echo "Skipping missing file: $2"
+                continue
+            fi
+
+            REMOVE_LIST="$REMOVE_LIST /cache/recovery/$2 /cache/recovery/$3"
+
+            if ! verify_signature device-signing /cache/recovery/$2 && \
+               ! verify_signature image-signing /cache/recovery/$2; then
+                echo "Invalid signature"
+                continue
+            fi
+
+            echo "Applying update: $2"
+            cd /cache
+            rm -Rf partitions
+
+            # Start by removing any file listed in "removed"
+            if [ "$FULL_IMAGE" != "1" ]; then
+                cat recovery/$2 | unxz | tar xf - removed >/dev/null 2>&1 || true
+                if [ -e removed ]; then
+                    while read file; do
+                        rm -Rf $file
+                    done < removed
+                fi
+                rm -f removed
+            fi
+
+            # Unpack everything else on top of the system partition
+            cat recovery/$2 | unxz | tar xf -
+            rm -f removed
+
+            # Process partition images
+            while read line; do
+                set -- $line
+
+                part=${1##/}
+                path=$3
+
+                if [ -e partitions/${part}.img ] && [ -e $path ]; then
+                    echo "Flashing ${part} at ${path}"
+                    cat partitions/${part}.img > ${path}
+                    rm partitions/${part}.img
+                fi
+            done < /etc/recovery.fstab
+        ;;
+
+        *)
+            echo "Unknown command: $1"
+        ;;
+    esac
+done < $COMMAND_FILE
+
+# Remove the update files
+for file in $REMOVE_LIST; do
+    rm $file
+done
+
+# Create the SWAP image if missing
+if [ ! -e /data/SWAP.img ]; then
+    echo "Creating SWAP device."
+    dd if=/dev/zero of=/data/SWAP.img bs=4096 count=131072
+    mkswap /data/SWAP.img
+fi
+
+touch /data/.last_update || true
+sync
+echo "Done upgrading: $(date)"

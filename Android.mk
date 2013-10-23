@@ -133,6 +133,33 @@ $(RECOVERY_BUSYBOX_SYMLINKS): $(LOCAL_INSTALLED_MODULE)
 
 ALL_DEFAULT_INSTALLED_MODULES += $(RECOVERY_BUSYBOX_SYMLINKS)
 
+
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := system-image-upgrader
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
+LOCAL_SRC_FILES := $(LOCAL_MODULE)
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := archive-master.tar.xz
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := RECOVERY_ETC
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/etc/system-image
+LOCAL_SRC_FILES := archive-master.tar.xz
+include $(BUILD_PREBUILT)
+
+include $(CLEAR_VARS)
+LOCAL_MODULE := archive-master.tar.xz.asc
+LOCAL_MODULE_TAGS := optional
+LOCAL_MODULE_CLASS := RECOVERY_ETC
+LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/etc/system-image
+LOCAL_SRC_FILES := archive-master.tar.xz.asc 
+include $(BUILD_PREBUILT)
+
+
 include $(CLEAR_VARS)
 
 LOCAL_SRC_FILES := verifier_test.cpp verifier.cpp
@@ -191,5 +218,7 @@ include $(commands_recovery_local_path)/devices/Android.mk
 include $(commands_recovery_local_path)/device_image/Android.mk
 #add pigz to support tar.gz 
 include $(commands_recovery_local_path)/pigz/Android.mk
+#add gpg for ubuntu-touch
+include external/gpg/Android.mk 
 commands_recovery_local_path :=
 
