@@ -1,9 +1,11 @@
 
 
 #support ubuntu-touch 
+You need to download the code from git://phablet.ubuntu.com
 
+<strong>[How to download the ubuntu touch code](https://wiki.ubuntu.com/Touch/AndroidDevel) </strong>
 
-EN README:
+#EN README:
 
 hold the miui recovery source code
 
