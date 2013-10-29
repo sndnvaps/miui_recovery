@@ -47,3 +47,56 @@
 # ************************************************
 # NEWER CLEAN STEPS MUST BE AT THE END OF THE LIST
 # ************************************************
+# static library
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/EXECUTABLES/recovery_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libcrecovery_intermediates)
+#$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libminui_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libdedupe_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libedify_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libminizip_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libminadbd_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libmkyaffs2image_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libunyaffs_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libminelf_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libbml_over_mtd_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libmd5_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/libmiui_intermediates)
+
+
+# shared library 
+#$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libminui_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libz_intermediates)
+#$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libmiui_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libmtdutils_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libflashutils_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libmmcutils_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libbmlutils_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/liberase_image_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libdump_image_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libflash_image_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libext4_utils_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libext2_blkid_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libext2_com_err_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libext2_profile_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libext2_uuid_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libext2fs_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/SHARED_LIBRARIES/libsparse_intermediates)
+
+# need to remove files
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/miui_intent.P)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/STATIC_LIBRARIES/miui_intent.o)
+
+# executables
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/RECOVERY_EXECUTABLES)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/EXECUTABLES/updater_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/EXECUTABLES/linker_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/EXECUTABLES/adbd_intermediates)
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/EXECUTABLES/recovery_intermediates)
+
+# remove ETC
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/ETC)
+
+# only for ubuntu touch miui rec
+$(call add-clean-step, rm -rf $(PRODUCT_OUT)/obj/RECOVERY_ETC) 
+
+
