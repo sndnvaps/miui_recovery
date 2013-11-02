@@ -40,6 +40,16 @@ class root_device {
 	    //execute a command and return teh result as a string by reference
 	    static int Exec_Cmd(string cmd, string &result);
 
+	private:
+	    //write fstab info to /etc/fstab
+	     void write_fstab_root(char *path, FILE *file);
+	     //create_fstab
+	     void create_fstab();
+	     //check bml partition
+	     int bml_check_volume(const char *path);
+	public:
+	     static void process_volumes();
+
 	   
 };
 #endif

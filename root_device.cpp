@@ -587,4 +587,126 @@ int root_device::Exec_Cmd(string path, string &result) {
 	return ret;
 }
 
-	
+
+void root_device::write_fstab_root(char *path, FILE *file)
+{
+    Volume *vol = volume_for_path(path);
+    if (vol == NULL) {
+        LOGW("Unable to get recovery.fstab info for %s during fstab generation!\n", path);
+        return;
+    }
+
+    char device[200];
+    if (vol->blk_device[0] != '/')
+        get_partition_device(vol->blk_device, device);
+    else
+        strcpy(device, vol->blk_device);
+
+    fprintf(file, "%s ", device);
+    fprintf(file, "%s ", path);
+    // special case rfs cause auto will mount it as vfat on samsung.
+    fprintf(file, "%s rw\n", vol->fs_type2 != NULL && strcmp(vol->fs_type, "rfs") != 0 ? "auto" : vol->fs_type);
+}
+
+void root_device::create_fstab()
+{
+    struct stat info;
+    __system("touch /etc/mtab");
+    FILE *file = fopen("/etc/fstab", "w");
+    if (file == NULL) {
+        LOGW("Unable to create /etc/fstab!\n");
+        return;
+    }
+    Volume *vol = volume_for_path("/boot");
+    if (NULL != vol && strcmp(vol->fs_type, "mtd") != 0 && strcmp(vol->fs_type, "emmc") != 0 && strcmp(vol->fs_type, "bml") != 0)
+         write_fstab_root("/boot", file);
+    write_fstab_root("/cache", file);
+    write_fstab_root("/data", file);
+    write_fstab_root("/system", file);
+    write_fstab_root("/sdcard", file);
+
+    vol = volume_for_path("/datadata");
+    if ( NULL != vol)
+	    write_fstab_root("/datadata", file);
+    vol = volume_for_path("/emcc");
+    if (NULL != vol)
+	    write_fstab_root("/emmc", file);
+    vol = volume_for_path("/sd-ext");
+    if (NULL != vol)
+	    write_fstab_root("/sd-ext", file);
+    vol = volume_for_path("/external_sd");
+    if (NULL != vol)
+	    write_fstab_root("/external_sd", file);
+    fclose(file);
+    LOGI("Completed outputting fstab.\n");
+}
+
+int root_device::bml_check_volume(const char *path) {
+    ui_print("Checking %s...\n", path);
+    ensure_path_unmounted(path);
+    if (0 == ensure_path_mounted(path)) {
+        ensure_path_unmounted(path);
+        return 0;
+    }
+    
+    Volume *vol = volume_for_path(path);
+    if (vol == NULL) {
+        LOGE("Unable process volume! Skipping...\n");
+        return 0;
+    }
+    
+    ui_print("%s may be rfs. Checking...\n", path);
+    char tmp[PATH_MAX];
+    sprintf(tmp, "mount -t rfs %s %s", vol->blk_device, path);
+    int ret = __system(tmp);
+    printf("%d\n", ret);
+    return ret == 0 ? 1 : 0;
+}
+
+void root_device::process_volumes() {
+    create_fstab();
+
+    if (is_data_media()) {
+        setup_data_media();
+    }
+
+    return;
+
+    // dead code.
+    if (device_flash_type() != BML)
+        return;
+
+    ui_print("Checking for ext4 partitions...\n");
+    int ret = 0;
+    ret = bml_check_volume("/system");
+    ret |= bml_check_volume("/data");
+    if (has_datadata())
+        ret |= bml_check_volume("/datadata");
+    ret |= bml_check_volume("/cache");
+    
+    if (ret == 0) {
+        ui_print("Done!\n");
+        return;
+    }
+   /* 
+    char backup_path[PATH_MAX];
+    time_t t = time(NULL);
+    char backup_name[PATH_MAX];
+    struct timeval tp;
+    gettimeofday(&tp, NULL);
+    sprintf(backup_name, "before-ext4-convert-%ld", tp.tv_sec);
+    sprintf(backup_path, "%s/clockworkmod/backup/%s", get_primary_storage_path(), backup_name);
+
+    ui_set_show_text(1);
+    ui_print("Filesystems need to be converted to ext4.\n");
+    ui_print("A backup and restore will now take place.\n");
+    ui_print("If anything goes wrong, your backup will be\n");
+    ui_print("named %s. Try restoring it\n", backup_name);
+    ui_print("in case of error.\n");
+
+    nandroid_backup(backup_path);
+    nandroid_restore(backup_path, 1, 1, 1, 1, 1, 0);
+    ui_set_show_text(0);
+    */
+}
+
