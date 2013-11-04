@@ -791,7 +791,9 @@ int main(int argc, char **argv) {
 
     device_ui_init();
     load_volume_table();
-    root_device::process_volumes();
+    //load the volume for /etc/fstab 
+    root_device *load_volume = new(root_device);
+    load_volume->process_volumes();
     ensure_path_mounted(LAST_LOG_FILE);
     rotate_last_logs(5);
     get_args(&argc, &argv);

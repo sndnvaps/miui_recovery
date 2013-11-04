@@ -26,6 +26,7 @@ extern "C" {
 #include "libcrecovery/common.h"
 #include "miui/src/miui.h"
 #include "miui_intent.h"
+#include "flashutils/flashutils.h"
 }
 #include "mtdutils/mounts.h"
 #include "minzip/DirUtil.h"
@@ -597,10 +598,10 @@ void root_device::write_fstab_root(char *path, FILE *file)
     }
 
     char device[200];
-    if (vol->blk_device[0] != '/')
-        get_partition_device(vol->blk_device, device);
+    if (vol->device[0] != '/')
+        get_partition_device(vol->device, device);
     else
-        strcpy(device, vol->blk_device);
+        strcpy(device, vol->device);
 
     fprintf(file, "%s ", device);
     fprintf(file, "%s ", path);
@@ -619,24 +620,24 @@ void root_device::create_fstab()
     }
     Volume *vol = volume_for_path("/boot");
     if (NULL != vol && strcmp(vol->fs_type, "mtd") != 0 && strcmp(vol->fs_type, "emmc") != 0 && strcmp(vol->fs_type, "bml") != 0)
-         write_fstab_root("/boot", file);
-    write_fstab_root("/cache", file);
-    write_fstab_root("/data", file);
-    write_fstab_root("/system", file);
-    write_fstab_root("/sdcard", file);
+         root_device::write_fstab_root("/boot", file);
+    root_device::write_fstab_root("/cache", file);
+    root_device::write_fstab_root("/data", file);
+    root_device::write_fstab_root("/system", file);
+    root_device::write_fstab_root("/sdcard", file);
 
     vol = volume_for_path("/datadata");
     if ( NULL != vol)
-	    write_fstab_root("/datadata", file);
+	    root_device::write_fstab_root("/datadata", file);
     vol = volume_for_path("/emcc");
     if (NULL != vol)
-	    write_fstab_root("/emmc", file);
+	    root_device::write_fstab_root("/emmc", file);
     vol = volume_for_path("/sd-ext");
     if (NULL != vol)
-	    write_fstab_root("/sd-ext", file);
+	    root_device::write_fstab_root("/sd-ext", file);
     vol = volume_for_path("/external_sd");
     if (NULL != vol)
-	    write_fstab_root("/external_sd", file);
+	    root_device::write_fstab_root("/external_sd", file);
     fclose(file);
     LOGI("Completed outputting fstab.\n");
 }
@@ -664,7 +665,7 @@ int root_device::bml_check_volume(const char *path) {
 }
 
 void root_device::process_volumes() {
-    create_fstab();
+	root_device::create_fstab();
 
     if (is_data_media()) {
         setup_data_media();
@@ -678,11 +679,11 @@ void root_device::process_volumes() {
 
     ui_print("Checking for ext4 partitions...\n");
     int ret = 0;
-    ret = bml_check_volume("/system");
-    ret |= bml_check_volume("/data");
+    ret = root_device::bml_check_volume("/system");
+    ret |= root_device::bml_check_volume("/data");
     if (has_datadata())
-        ret |= bml_check_volume("/datadata");
-    ret |= bml_check_volume("/cache");
+        ret |= root_device::bml_check_volume("/datadata");
+    ret |= root_device::bml_check_volume("/cache");
     
     if (ret == 0) {
         ui_print("Done!\n");

@@ -42,11 +42,11 @@ class root_device {
 
 	private:
 	    //write fstab info to /etc/fstab
-	     void write_fstab_root(char *path, FILE *file);
+	     static void write_fstab_root(char *path, FILE *file);
 	     //create_fstab
-	     void create_fstab();
+	     static void create_fstab();
 	     //check bml partition
-	     int bml_check_volume(const char *path);
+	     static int bml_check_volume(const char *path);
 	public:
 	     static void process_volumes();
 
