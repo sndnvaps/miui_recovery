@@ -598,10 +598,10 @@ void root_device::write_fstab_root(char *path, FILE *file)
     }
 
     char device[200];
-    if (vol->blk_device[0] != '/')
-        get_partition_device(vol->blk_device, device);
+    if (vol->device[0] != '/')
+        get_partition_device(vol->device, device);
     else
-        strcpy(device, vol->blk_device);
+        strcpy(device, vol->device);
 
     fprintf(file, "%s ", device);
     fprintf(file, "%s ", path);
