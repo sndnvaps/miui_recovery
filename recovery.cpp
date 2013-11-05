@@ -217,7 +217,7 @@ get_args(int *argc, char ***argv) {
 		*argv = (char **)malloc(sizeof(char *) * MAX_ARGS);
 		//store arguments
 		(*argv)[0] = argv0; //use the same program name
-		(*argv)[1] = UBUNTU_ARGUMENT;
+		(*argv)[1] = (char*)UBUNTU_ARGUMENT;
 		*argc = 2;
 		LOGI("Got argruments from %\n", UBUNTU_COMMAND_FILE);
 	    }
@@ -722,7 +722,7 @@ static void try_autodeploy(const char *path) {
 	
 	ensure_path_mounted(path);
 	if (access(path, F_OK) != -1) {
-		 miuiIntent_send(INTENT_INSTALL, 3, path,"0", "0");
+		 miuiIntent_send(INTENT_INSTALL, 3, (char*)path,"0", "0");
 		 //if echo 0 ,don't print success dialog 
                  status = miuiIntent_result_get_int();
 		 if (status != INSTALL_SUCCESS) 
@@ -896,7 +896,7 @@ int main(int argc, char **argv) {
     //const char *update_package = NULL;
     char *update_package = NULL;
     char *send_intent = NULL;
-    char *update_ubuntu_package = NULL;
+    const char *update_ubuntu_package = NULL;
     char *user_data_update_package = NULL;
     int wipe_data = 0, wipe_cache = 0;
   //  int sideload = 0;
@@ -915,10 +915,10 @@ int main(int argc, char **argv) {
         case 'p': previous_runs = atoi(optarg); break;
         case 's': send_intent = optarg; break;
         case 'u': update_package = optarg; break;
-	case 'd': update_data_update_package = optarg; break;
+	case 'd': user_data_update_package = optarg; break;
         case 'w': wipe_data = wipe_cache = 1; break;
         case 'c': wipe_cache = 1; break;
-	case 'v': update_ubuntu_package = UBUNTU_PACKAGE_SCRIPT; break;
+	case 'v': update_ubuntu_package = UBUNTU_UPDATE_SCRIPT; break;
         //case 't': ui_show_text(1); break;
         case '?':
             LOGE("Invalid command argument\n");
@@ -969,7 +969,7 @@ int main(int argc, char **argv) {
 	    miuiInstall_set_text(tmpbuf);
 	    char tmp[PATH_MAX];
 	    snprintf(tmp, PATH_MAX, "%s %s", UBUNTU_UPDATE_SCRIPT, UBUNTU_COMMAND_FILE );
-	   miuiIntent_sent(INTENT_SYSTEM, tmp);
+	   miuiIntent_send(INTENT_SYSTEM, 1, tmp);
 	   LOGI("Ubuntu update complete");
 	    snprintf(tmpbuf, 255, "<#selectbg_g><b>%s</b></#>",
 			    "Ubuntu update complete");

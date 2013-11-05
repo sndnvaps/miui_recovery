@@ -17,7 +17,7 @@ LOCAL_MODULE := libmkyaffs2image_static
 LOCAL_MODULE_TAGS := eng
 #LOCAL_CFLAGS += -Dmain=mkyaffs2image_main
 ifeq ($(HAVE_SELINUX), true)
-LOCAL_C_INCLUDES += external/libselinux/include
+LOCAL_C_INCLUDES += bootable/recovery/libselinux/include
 LOCAL_STATIC_LIBRARIES += libselinux
 LOCAL_CFLAGS += -DHAVE_SELINUX
 endif # HAVE_SELINUX
