@@ -78,6 +78,42 @@ static byte                            ag_oncopybusy=0;
 static void *ag_thread(void *cookie);
 void ag_refreshrate();
 
+
+/*************************[ Flipped screen support ]***************************/
+ // sample
+ //
+ /*
+ * void gr_flip(void)
+ * {
+ *   GGLContext *gl = gr_context;
+ * 
+ *  // swap front and back buffers 
+ *   gr_active_fb = (gr_active_fb + 1) & 1;
+ *
+ * #ifdef BOARD_HAS_FLIPPED_SCREEN
+ *   // flip buffer 180 degrees for devices with physicaly inverted screens *
+ *    unsigned int i;
+ *   for (i = 1; i < (vi.xres * vi.yres); i++) {
+ *       unsigned short tmp = gr_mem_surface.data[i];
+ *       gr_mem_surface.data[i] = gr_mem_surface.data[(vi.xres * vi.yres * 2) - i];
+ *       gr_mem_surface.data[(vi.xres * vi.yres * 2) - i] = tmp;
+ *   }
+ * #endif
+ *
+ *
+ *   // copy data from the in-memory surface to the buffer we're about
+ *    * to make active. 
+ *  memcpy(gr_framebuffer[gr_active_fb].data, gr_mem_surface.data,
+ *          fi.line_length * vi.yres);
+ *
+ *  // inform the display driver 
+ *   set_active_framebuffer(gr_active_fb);
+ * }
+ *
+ */
+
+
+
 /*******************[ CALCULATING ALPHA COLOR WITH NEON ]***********************/
 dword ag_calchighlight(color c1,color c2){
   color vc1 = ag_calculatealpha(c1,0xffff,40);
@@ -469,6 +505,23 @@ static void *ag_thread(void *cookie){
 }
 
 
+
+// -- flip func 
+#ifdef BOARD_HAS_FLIPPED_SCREEN
+// flip buffer 180 degrees for devices with physicaly inverted screen 
+void gr_flip(void)
+{
+   
+    unsigned int i;
+    for (i = 1; i < (ag_fbv.xres * ag_fbv.yres); i++) {
+        color tmp = ag_c.data[i];
+        ag_c.data[i] = ag_c.data[(ag_fbv.xres * ag_fbv.yres * 2) - i];
+        ag_c.data[(ag_fbv.xres * ag_fbv.yres * 2) - i] = tmp;
+    }  
+}
+
+#endif
+ 
 //-- Sync Display
 void ag_copybusy(char * wait){
   CANVAS tmpc;
