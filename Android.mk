@@ -161,6 +161,8 @@ include $(commands_recovery_local_path)/minelf/Android.mk
 #end
 #add libminadbd for sideload
 include $(commands_recovery_local_path)/minadbd/Android.mk
+#add libminui 
+include $(commands_recovery_local_path)/minui/Android.mk
 
 include $(commands_recovery_local_path)/minzip/Android.mk
 include $(commands_recovery_local_path)/mtdutils/Android.mk

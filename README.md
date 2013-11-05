@@ -18,6 +18,9 @@ adb sideload (thanks petercxy)
 ...
 ......
 
+
+
+
 if you need to use the device info from the 'recovery menu'
 you should add the line to Boardconfig.mk
 
@@ -51,6 +54,17 @@ export LD_LIBRARY_PATH .:/sbin
 
 Releases:
 <a href="https://github.com/sndnvaps/miui_recovery/archive/v3.2.0.tar.gz"> v3.2.0.tar.gz </a>
+
+----------------------------------------------------------------------
+
+#add support flipped screen
+
+为的就是处理屏幕倒置180度的问题.
+
+```
+#往BoardConfig.mk文件中添加如一下的内容
+BOARD_HAS_FLIPPED_SCREEN := true
+```
 
 
 
