@@ -87,6 +87,8 @@ LOCAL_SHARED_LIBRARIES +=  libext4_utils libz libmtdutils  \
 			   libdump_image libflash_image \
 			   libcutils libstdc++ libc libm \
 			   libsparse libstlport
+LOCAL_SHARED_LIBRARIES += \
+			  libdsyscalls
 LOCAL_LDFLAGS := -ldl 
 
 ifeq ($(TARGET_BOOTLOADER_BOARD_NAME), herring)
