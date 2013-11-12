@@ -19,6 +19,8 @@
 #include <stdarg.h>
 
 #include "verifier.h"
+#include "mincrypt/sha.h"
+#include "mincrypt/sha256.h"
 
 // This is build/target/product/security/testkey.x509.pem after being
 // dumped out by dumpkey.jar.
@@ -59,7 +61,7 @@ RSAPublicKey test_key =
       3
     };
 
-RSAPublicKey gaojiquan_f4_key = 
+RSAPublicKey test_f4_key = 
                   {64,0xe737c77d,
 		    {2559301163,1518742568,3812513943,394403660,
 		    2374126730,175358713,1975504815,1427317958,
@@ -112,23 +114,35 @@ void ui_set_progress(float fraction) {
 }
 
 int main(int argc, char **argv) {
-    if (argc != 2  || argc != 3) {
-	    fprintf(stderr, "Usage: %s [-f4] <package>\n", argv[0]);
+    if (argc != 2  || argc > 3) {
+	    fprintf(stderr, "Usage: %s [-sha256] [-f4 | -file <keys>] <package>\n", argv[0]);
         return 2;
     }
 
-    RSAPublicKey* key = &test_key;
+    Certificate default_cert;
+    Certificate* cert = &default_cert;
+    cert->public_key = &test_key;
+    cert->hash_len = SHA_DIGEST_SIZE;
+    int num_keys = 1;
     ++argv;
-    if (strcmp(argv[0], "-f4") == 0) {
-	    ++argv;
-	    key = &gaojiquan_f4_key;
+    if (strcmp(argv[0], "-sha256") == 0) {
+        ++argv;
+        cert->hash_len = SHA256_DIGEST_SIZE;
     }
-    int result = verify_file(*argv, key, 1);
+    if (strcmp(argv[0], "-f4") == 0) {
+        ++argv;
+        cert->public_key = &test_f4_key;
+    } else if (strcmp(argv[0], "-file") == 0) {
+        ++argv;
+        cert = load_keys(argv[0], &num_keys);
+        ++argv;
+    }
+    int result = verify_file(*argv, cert, num_keys);
     if (result == VERIFY_SUCCESS) {
-        printf("SUCCESS\n");
+        printf("VERIFIED\n");
         return 0;
     } else if (result == VERIFY_FAILURE) {
-        printf("FAILURE\n");
+        printf("NOT VERIFIED\n");
         return 1;
     } else {
         printf("bad return value\n");

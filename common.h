@@ -1,7 +1,8 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
  *
- * Licensed under the Apache License, Version 2.0 (the "License"); * you may not use this file except in compliance with the License.
+ * Licensed under the Apache License, Version 2.0 (the "License"); 
+ * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
  *      http://www.apache.org/licenses/LICENSE-2.0
@@ -17,6 +18,8 @@
 #define RECOVERY_COMMON_H
 
 #include <stdio.h>
+#include <sys/stat.h>
+#include <fs_mgr.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -50,7 +53,7 @@ void ui_set_text(char *str);
 
 // Default allocation of progress bar segments to operations
 static const int VERIFICATION_PROGRESS_TIME = 60;
-static const float VERIFICATION_PROGRESS_FRACTION = 0;
+static const float VERIFICATION_PROGRESS_FRACTION = 0.25;
 static const float DEFAULT_FILES_PROGRESS_FRACTION = 0.4;
 static const float DEFAULT_IMAGE_PROGRESS_FRACTION = 0.1;
 
@@ -76,30 +79,8 @@ void ui_reset_progress();
 #define STRINGIFY(x) #x
 #define EXPAND(x) STRINGIFY(x)
 
-typedef struct {
-    const char* mount_point;  // eg. "/cache".  must live in the root directory.
+typedef struct fstab_rec Volume;
 
-    const char* fs_type;      // "yaffs2" or "ext4" or "vfat"
-
-    const char* device;       // MTD partition name if fs_type == "yaffs"
-                              // block device if fs_type == "ext4" or "vfat"
-
-    const char* device2;      // alternative device to try if fs_type
-                              // == "ext4" or "vfat" and mounting
-                              // 'device' fails
-
-    long long length;         // (ext4 partition only) when
-                              // formatting, size to use for the
-                              // partition.  0 or negative number
-                              // means to format all but the last
-                              // (that much).
-
-    const char* fs_type2;
-
-    const char* fs_options;
-
-    const char* fs_options2;
-} Volume;
 
 typedef struct {
     // number of frames in indeterminate progress bar animation

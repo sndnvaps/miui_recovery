@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2007 The Android Open Source Project
+ * By Seth Shelnutt
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,17 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef RECOVERY_INSTALL_H_
-#define RECOVERY_INSTALL_H_
+#define Loki_Image "/tmp/loki_image"
+#define BOOT_PARTITION "/dev/block/platform/msm_sdcc.1/by-name/boot"
+#define RECOVERY_PARTITION "/dev/block/platform/msm_sdcc.1/by-name/recovery"
 
-#include "common.h"
+int loki_patch_shellcode(unsigned int addr);
 
-enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT, INSTALL_UPDATE_SCRIPT_MISSING, INSTALL_UPDATE_BINARY_MISSING };
-int install_package(const char *root_path);
+int loki_patch(char *partition, char *partitionPath);
 
-#ifdef __cplusplus
-}
-#endif
+int loki_flash(char *partition);
 
+int loki_check_partition(char *partition);
 
-#endif  // RECOVERY_INSTALL_H_
+int loki_check();

@@ -39,6 +39,7 @@ extern "C" {
 #include "verifier.h"
 #include "root_device.hpp"
 
+#include "firmware.h"
 
 #define ASSUMED_UPDATE_BINARY_NAME  "META-INF/com/google/android/update-binary"
 #define ASSUMED_UPDATE_SCRIPT_NAME  "META-INF/com/google/android/update-script"
@@ -48,9 +49,72 @@ extern "C" {
 
 bool skip_check_device_info(char *ignore_device_info);
 
+
+// The update binary ask us to install a firmware file on reboot.  Set
+// that up.  Takes ownership of type and filename.
+static int  handle_firmware_update(char* type, char* filename, ZipArchive* zip) {
+    unsigned int data_size;
+    const ZipEntry* entry = NULL;
+
+    if (strncmp(filename, "PACKAGE:", 8) == 0) {
+        entry = mzFindZipEntry(zip, filename+8);
+        if (entry == NULL) {
+            LOGE("Failed to find \"%s\" in package", filename+8);
+            return INSTALL_ERROR;
+        }
+        data_size = entry->uncompLen;
+    } else {
+        struct stat st_data;
+        if (stat(filename, &st_data) < 0) {
+            LOGE("Error stat'ing %s: %s\n", filename, strerror(errno));
+            return INSTALL_ERROR;
+        }
+        data_size = st_data.st_size;
+    }
+
+    LOGI("type is %s; size is %d; file is %s\n",
+         type, data_size, filename);
+
+    char* data = malloc(data_size);
+    if (data == NULL) {
+        LOGI("Can't allocate %d bytes for firmware data\n", data_size);
+        return INSTALL_ERROR;
+    }
+
+    if (entry) {
+        if (mzReadZipEntry(zip, entry, data, data_size) == false) {
+            LOGE("Failed to read \"%s\" from package", filename+8);
+            return INSTALL_ERROR;
+        }
+    } else {
+        FILE* f = fopen(filename, "rb");
+        if (f == NULL) {
+            LOGE("Failed to open %s: %s\n", filename, strerror(errno));
+            return INSTALL_ERROR;
+        }
+        if (fread(data, 1, data_size, f) != data_size) {
+            LOGE("Failed to read firmware data: %s\n", strerror(errno));
+            return INSTALL_ERROR;
+        }
+        fclose(f);
+    }
+
+    if (remember_firmware_update(type, data, data_size)) {
+        LOGE("Can't store %s image\n", type);
+        free(data);
+        return INSTALL_ERROR;
+    }
+
+    free(filename);
+
+    return INSTALL_SUCCESS;
+}
+
+
+static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
+
 // If the package contains an update binary, extract it and run it.
-static int
-try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
+static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
     const ZipEntry* binary_entry =
             mzFindZipEntry(zip, ASSUMED_UPDATE_BINARY_NAME);
     struct stat st;
@@ -66,7 +130,7 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
         }
 
         mzCloseZipArchive(zip);
-        return INSTALL_ERROR;
+        return INSTALL_UPDATE_BINARY_MISSING;
     }
 
     char* binary = "/tmp/update_binary";
@@ -75,7 +139,7 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
     if (fd < 0) {
         mzCloseZipArchive(zip);
         LOGE("Can't make %s\n", binary);
-        return INSTALL_ERROR;
+        return 1;
     }
     bool ok = mzExtractZipEntryToFile(zip, binary_entry, fd);
     close(fd);
@@ -84,7 +148,7 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
     if (!ok) {
         LOGE("Can't copy %s\n", ASSUMED_UPDATE_BINARY_NAME);
 	mzCloseZipArchive(zip);
-        return INSTALL_ERROR;
+        return 1;
     }
 
 
@@ -176,10 +240,13 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
 	setenv("UPDATE_PACKAGE", path, 1);
         close(pipefd[0]);
         execv(binary, args);
-        //fprintf(stdout, "E:Can't run %s (%s)\n", binary, strerror(errno));
+        fprintf(stdout, "E:Can't run %s (%s)\n", binary, strerror(errno));
         _exit(-1);
     }
     close(pipefd[1]);
+    
+    char *firmware_type = NULL;
+    char *firmware_filename = NULL;
 
     *wipe_cache = 0;
 
@@ -209,6 +276,18 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
             char* fraction_s = strtok(NULL, " \n");
             float fraction = strtof(fraction_s, NULL);
             ui_set_progress(fraction);
+	} else if (strcmp(command, "firmware") == 0) {
+            char* type = strtok(NULL, " \n");
+            char* filename = strtok(NULL, " \n");
+
+            if (type != NULL && filename != NULL) {
+                if (firmware_type != NULL) {
+                    LOGE("ignoring attempt to do multiple firmware updates");
+                } else {
+                    firmware_type = strdup(type);
+                    firmware_filename = strdup(filename);
+                }
+            }
         } else if (strcmp(command, "ui_print") == 0) {
             char* str = strtok(NULL, "\n");
             if (str)
@@ -250,98 +329,43 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
         miuiInstall_set_text(tmpbuf);
         return INSTALL_ERROR;
     }
+
+    if (firmware_type != NULL) {
+        int ret = handle_firmware_update(firmware_type, firmware_filename, zip);
+        mzCloseZipArchive(zip);
+        return ret;
+    }
     mzCloseZipArchive(zip); 
     return INSTALL_SUCCESS;
 }
 
-// Reads a file containing one or more public keys as produced by
-// DumpPublicKey:  this is an RSAPublicKey struct as it would appear
-// as a C source literal, eg:
-//
-//  "{64,0xc926ad21,{1795090719,...,-695002876},{-857949815,...,1175080310}}"
-//
-// For key versions newer than the original 2048-bit e=3  keys
-// Now is support 2048-bit e = 65537
-// Supported by Android, the string is preceded by version 
-// identifier, eg:
-//  "v2 {64,0xc926ad21,{1795090719,...,-695002876},{-857949815,...,1175080310}}" 
-//
-//
-// (Note that the braces and commas in this example are actual
-// characters the parser expects to find in the file; the ellipses
-// indicate more numbers omitted from this example.)
-//
-// The file may contain multiple keys in this format, separated by
-// commas.  The last key must not be followed by a comma.
-//
-// Returns NULL if the file failed to parse, or if it contain zero keys.
-static RSAPublicKey*
-load_keys(const char* filename, int* numKeys) {
-    RSAPublicKey* out = NULL;
-    *numKeys = 0;
 
-    FILE* f = fopen(filename, "r");
-    if (f == NULL) {
-        LOGE("opening %s: %s\n", filename, strerror(errno));
-        goto exit;
-    }
-   {
-    int i;
-    bool done = false;
-    while (!done) {
-        ++*numKeys;
-        out = (RSAPublicKey*)realloc(out, *numKeys * sizeof(RSAPublicKey));
-        RSAPublicKey* key = out + (*numKeys - 1);
-        if (fscanf(f, " { %i , 0x%x , { %u",
-                   &(key->len), &(key->n0inv), &(key->n[0])) != 3) {
-            goto exit;
-        }
-        if (key->len != RSANUMWORDS) {
-            LOGE("key length (%d) does not match expected size\n", key->len);
-            goto exit;
-        }
-        for (i = 1; i < key->len; ++i) {
-            if (fscanf(f, " , %u", &(key->n[i])) != 1) goto exit;
-        }
-        if (fscanf(f, " } , { %u", &(key->rr[0])) != 1) goto exit;
-        for (i = 1; i < key->len; ++i) {
-            if (fscanf(f, " , %u", &(key->rr[i])) != 1) goto exit;
-        }
-        fscanf(f, " } } ");
-
-        // if the line ends in a comma, this file has more keys.
-        switch (fgetc(f)) {
-            case ',':
-                // more keys to come.
-                break;
-
-            case EOF:
-                done = true;
-                break;
-
-            default:
-                LOGE("unexpected character between keys\n");
-                goto exit;
-        }
-    }
-   }
-
-    fclose(f);
-    return out;
-
-exit:
-    if (f) fclose(f);
-    free(out);
-    *numKeys = 0;
-    return NULL;
-}
-
-static int
-really_install_package(const char *path, int* wipe_cache)
+static int really_install_package(const char *path)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_print("Finding update package...\n");
     ui_show_indeterminate_progress();
+
+     // Resolve symlink in case legacy /sdcard path is used
+    // Requires: symlink uses absolute path
+    char new_path[PATH_MAX];
+    if (strlen(path) > 1) {
+        char *rest = strchr(path + 1, '/');
+        if (rest != NULL) {
+            int readlink_length;
+            int root_length = rest - path;
+            char *root = malloc(root_length + 1);
+            strncpy(root, path, root_length);
+            root[root_length] = 0;
+            readlink_length = readlink(root, new_path, PATH_MAX);
+            if (readlink_length > 0) {
+                strncpy(new_path + readlink_length, rest, PATH_MAX - readlink_length);
+                path = new_path;
+            }
+            free(root);
+        }
+    }
+
     LOGI("Update location: %s\n", path);
 
     if (ensure_path_mounted(path) != 0) {
@@ -352,35 +376,32 @@ really_install_package(const char *path, int* wipe_cache)
     ui_print("Opening update package...\n");
 
     int err;
-  /* Remove signature check to support ors */
-    /*
-    int sig_stat = 0;
-     sig_stat = check_sig();
-             if (sig_stat == -1) {
-		     printf("skip Signature check ...\n");
-	     }
+ // check the signature 
+  if (signature_check_enabled) {
+        int numKeys;
+        Certificate* loadedKeys = load_keys(PUBLIC_KEYS_FILE, &numKeys);
+        if (loadedKeys == NULL) {
+            LOGE("Failed to load keys\n");
+            return INSTALL_CORRUPT;
+        }
+        LOGI("%d key(s) loaded from %s\n", numKeys, PUBLIC_KEYS_FILE);
 
-    if (sig_stat == 1) {
-	    int numkeys;
-	    RSAPublicKey* loadedkeys = load_keys(PUBLIC_KEYS_FILE, &numkeys);
-	   if (loadedkeys == NULL) {
-		   LOGE("Failed to load keys\n");
-		   return INSTALL_CORRUPT;
-	   }
-	   LOGI("%d key(s) loaded from %s\n", numkeys, PUBLIC_KEYS_FILE);
+        // Give verification half the progress bar...
+        ui_print("Verifying update package...\n");
+        ui_show_progress(
+                VERIFICATION_PROGRESS_FRACTION,
+                VERIFICATION_PROGRESS_TIME);
 
-	   //Give verification half the progres bar...
-	   ui_print("Verifying update package...\n");
-
-	   err = verify_file(path, loadedkeys, numkeys);
-	   free(loadedkeys);
-	   LOGI("Verify_file returned %d\n", err);
-	    if (err != VERIFY_SUCCESS) {
-		    LOGE("Signature verification failed!\n");
-			    return INSTALL_CORRUPT;
-	    }
+        err = verify_file(path, loadedKeys, numKeys);
+        free(loadedKeys);
+        LOGI("verify_file returned %d\n", err);
+        if (err != VERIFY_SUCCESS) {
+            LOGE("signature verification failed\n");
+            ui_show_text(1);
+            if (!confirm_selection("Install Untrusted Package?", "Yes - Install untrusted zip"))
+                return INSTALL_CORRUPT;
+        }
     }
-*/
 
     /* Try to open the package.
      */
@@ -394,13 +415,13 @@ really_install_package(const char *path, int* wipe_cache)
     /* Verify and install the contents of the package.
      */
     ui_print("Installing update...\n");
-    return try_update_binary(path, &zip, wipe_cache);
+    return try_update_binary(path, &zip);
 }
 
 int
-install_package(const char* path, int* wipe_cache, const char* install_file)
+install_package(const char* path)
 {
-    FILE* install_log = fopen_path(install_file, "w");
+    FILE* install_log = fopen_path(LAST_INSTALL_FILE, "w");
     if (install_log) {
         fputs(path, install_log);
         fputc('\n', install_log);
@@ -412,6 +433,7 @@ install_package(const char* path, int* wipe_cache, const char* install_file)
         fputc(result == INSTALL_SUCCESS ? '1' : '0', install_log);
         fputc('\n', install_log);
         fclose(install_log);
+	chmod(LAST_INSTALL_FILE, 0644);
     }
     return result;
 }

@@ -92,7 +92,6 @@ __popen(const char *program, const char *type)
 			close(fileno(pcur->fp));
 
 		if (*type == 'r') {
-
 			(void) close(pdes[0]);
 			if (pdes[1] != STDOUT_FILENO) {
 				(void)dup2(pdes[1], STDOUT_FILENO);

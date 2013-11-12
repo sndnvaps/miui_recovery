@@ -1,17 +1,13 @@
 #!/bin/bash
 #
-# A test suite for applypatch.  Run in a client where you have done
-# envsetup, choosecombo, etc.
-#
-# DO NOT RUN THIS ON A DEVICE YOU CARE ABOUT.  It will mess up your
-# system partition.
-#
+# A test suite for recovery's package signature verifier.  Run in a
+# client where you have done envsetup, lunch, etc.
 #
 # TODO: find some way to get this run regularly along with the rest of
 # the tests.
 
 EMULATOR_PORT=5580
-DATA_DIR=$ANDROID_BUILD_TOP/src/testdata
+DATA_DIR=$ANDROID_BUILD_TOP/bootable/recovery/testdata
 
 WORK_DIR=/data/local/tmp
 
@@ -68,34 +64,39 @@ $ADB push $ANDROID_PRODUCT_OUT/system/bin/verifier_test \
 expect_succeed() {
   testname "$1 (should succeed)"
   $ADB push $DATA_DIR/$1 $WORK_DIR/package.zip
-  run_command $WORK_DIR/verifier_test $WORK_DIR/package.zip || fail
+  shift
+  run_command $WORK_DIR/verifier_test "$@" $WORK_DIR/package.zip || fail
 }
 
 expect_fail() {
   testname "$1 (should fail)"
   $ADB push $DATA_DIR/$1 $WORK_DIR/package.zip
-  run_command $WORK_DIR/verifier_test $WORK_DIR/package.zip && fail
+  shift
+  run_command $WORK_DIR/verifier_test "$@" $WORK_DIR/package.zip && fail
 }
 
-expect_succeed_f4() {
-	testname "$1 (should succeed)"
-	$ADB push $DATA_DIR/$1 $WORK_DIR/package.zip
-	run_command $WORK_DIR/verifyer_test -f4 $WORK_DIR/package.zip || fail
-}
-
-expect_fail_f4() {
-	testname "$1 (should fail)"
-	$ADB push $DATA_DIR/$1 $WORK_DIR/package.zip
-	run_command $WORK_DIR/verifier_test -f4 $WORK_DIR/package.zip && fail
-}
-
-
+# not signed at all
 expect_fail unsigned.zip
+# signed in the pre-donut way
 expect_fail jarsigned.zip
+
+# success cases
 expect_succeed otasigned.zip
-expect_fail_f4 otasigned.zip
-expect_succeed_f4 otasigned_f4.zip
+expect_succeed otasigned_f4.zip -f4
+expect_succeed otasigned_sha256.zip -sha256
+expect_succeed otasigned_f4_sha256.zip -sha256 -f4
+
+# verified against different key
+expect_fail otasigned.zip -f4
 expect_fail otasigned_f4.zip
+
+# verified against right key but wrong hash algorithm
+expect_fail otasigned.zip -sha256
+expect_fail otasigned_f4.zip -sha256 -f4
+expect_fail otasigned_sha256.zip
+expect_fail otasigned_f4_sha256.zip -f4
+
+# various other cases
 expect_fail random.zip
 expect_fail fake-eocd.zip
 expect_fail alter-metadata.zip

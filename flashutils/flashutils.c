@@ -4,7 +4,7 @@
 #include <sys/wait.h>
 #include <stdio.h>
 
-#include "flashutils.h"
+#include "flashutils/flashutils.h"
 
 #ifndef BOARD_BML_BOOT
 #define BOARD_BML_BOOT              "/dev/block/bml7"
@@ -57,12 +57,6 @@ static int detect_partition(const char *partitionType, const char *partition)
         type = MMC;
     else if (strstr(partition, "/dev/block/bml") != NULL)
         type = BML;
-    else if (strcmp(partitionType,"emmc") == 0)
-	 type = MMC;
-    else if (strcmp(partitionType, "bml") == 0)
-	  type = BML;
-    else if (strcmp(partitionType, "mtd") == 0)
-	  type = MTD;
 
     if (partitionType != NULL) {
         type = get_flash_type(partitionType);

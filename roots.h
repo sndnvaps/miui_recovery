@@ -42,6 +42,11 @@ int ensure_path_unmounted(const char* path);
 // it is mounted.
 int format_volume(const char* volume);
 
+char* get_primary_storage_path();
+char** get_extra_storage_paths();
+char* get_android_secure_path();
+void setup_legacy_storage_paths();
+int get_num_extra_volumes();
 int get_num_volumes();
 
 Volume* get_device_volumes();
@@ -55,7 +60,13 @@ int is_path_mounted(const char* path);
 
 int format_unknown_device(const char *device, const char* path, const char *fs_type);
 int format_device(const char *device, const char *path, const char *fs_type) ;
+
 int has_datadata() ;
+
+void ignore_data_media_workaround(int ignore);
+
+#define MAX_NUM_MANAGED_VOLUMES 10
+
 #ifdef __cplusplus
 }
 #endif

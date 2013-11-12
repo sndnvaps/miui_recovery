@@ -37,5 +37,4 @@ LOCAL_CFLAGS := $(edify_cflags)
 LOCAL_MODULE := libedify
 
 include $(BUILD_STATIC_LIBRARY)
-#include $(BUILD_SHARED_LIBRARY)
 
