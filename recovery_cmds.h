@@ -50,7 +50,15 @@ extern int make_f2fs_main(int argc, char **argv);
 extern int fsck_f2fs_main(int argc, char **argv);
 extern int fibmap_main(int argc, char **argv);
 #endif
-
+#ifdef HAVE_SELINUX
+extern int getenforce_mian(int argc, char **argv);
+extern int setenforce_mian(int argc, char **argv);
+extern int chcon_main(int argc, char **argv);
+extern int runcon_main(int argc, char **argv);
+extern int getsebool_main(int argc, char **argv);
+extern int setsebool_main(int argc, char **argv);
+extern int load_policy_main(int argc, char **argv);
+#endif
 extern int busybox_driver(int argc, char **argv);
 
 struct recovery_cmd {
@@ -84,6 +92,15 @@ static const struct recovery_cmd recovery_cmds[] = {
     { "mkfs.f2fs",      make_f2fs_main },
     { "fsck.f2fs",      fsck_f2fs_main },
     { "fibmap.f2fs",    fibmap_main },
+#endif
+#ifdef HAVE_SELINUX
+    { "getenforce",     getenforce_main },
+    { "setenforce",     setenforce_main },
+    { "chcon",          chcon_main },
+    { "runcon",         runcon_main },
+    { "getsebool",      getsebool_main },
+    { "setsebool",      setsebool_main },
+    { "load_policy",    load_policy_main },
 #endif
     { NULL, NULL },
 };

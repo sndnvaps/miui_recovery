@@ -6,7 +6,6 @@ commands_recovery_local_path := $(LOCAL_PATH)
 LOCAL_SRC_FILES := \
 	recovery_ui.cpp \
 	mount.cpp \
-	bootloader.cpp \
 	install.cpp \
 	roots.cpp \
 	firmware.cpp \
@@ -16,12 +15,8 @@ LOCAL_SRC_FILES := \
 	reboot.cpp \
 	miui_func.cpp \
 	utils_func.cpp \
-	recovery.cpp \
-        sideload.cpp   \
-	../../system/core/toolbox/newfs_msdos.c \
-        ../../system/core/toolbox/dynarray.c \
-        ../../system/vold/vdc.c \
-        prop.c
+	recovery.cpp 
+	
 
 
 
@@ -29,7 +24,7 @@ LOCAL_MODULE := recovery
 
 #LOCAL_FORCE_STATIC_EXECUTABLE := true
 
-RECOVERY_API_VERSION := 3
+RECOVERY_API_VERSION := 2
 MYDEFINE_CFLAGS :=  -D_GLIBCXX_DEBUG_PEDANTIC \
                   -DFT2_BUILD_LIBRARY=1 \
                   -DDARWIN_NO_CARBON \
@@ -52,18 +47,11 @@ LOCAL_SHARED_LIBRARIES :=
 ifeq ($(TARGET_USERIMAGES_USE_EXT4), true)
 LOCAL_CFLAGS += -DUSE_EXT4
 LOCAL_C_INCLUDES += system/extras/ext4_utils
-#LOCAL_STATIC_LIBRARIES += libext4_utils libz
 LOCAL_SHARED_LIBRARIES += libext4_utils libz
 endif
 
 ifeq ($(BOARD_HAS_REMOVABLE_STORAGE), true) 
 	LOCAL_CFLAGS += -DBOARD_HAS_REMOVABLE_STORAGE
-endif
-
-ifeq ($(ENABLE_LOKI_RECOVERY),true)
-  LOCAL_CFLAGS += -DENABLE_LOKI
-  LOCAL_SRC_FILES += \
-    compact_loki.c
 endif
 
 
@@ -117,7 +105,7 @@ LOCAL_STATIC_LIBRARIES += libminzip libunz libmincrypt \
 			  libmd5  libmiui
 
 LOCAL_STATIC_LIBRARIES += libft2 libpng libminadbd \
-			  libfs_mgr liblog 
+			  libfs_mgr liblog libbusybox  
 
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
  LOCAL_CFLAGS += -DUSE_F2FS
@@ -151,7 +139,12 @@ RECOVERY_LINKS := bu edify  flash_image dump_image mkyaffs2image \
 	unyaffs erase_image nandroid reboot  dedupe minizip \
 	start stop setup_adbd fsck_msdos newfs_msdos vdc \
 	sdcard  
-
+#for selinux 
+RECOVERY_LINKS += \
+		  getenforce setenforce \
+		  chcon runcon \
+		  getsebool setsebool \
+		  load_policy 
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
  RECOVERY_LINKS += mkfs.f2fs fsck.f2fs fibmap.f2fs
  endif
@@ -199,6 +192,41 @@ LOCAL_STATIC_LIBRARIES := libmincrypt
 LOCAL_SHARED_LIBRARIES :=  libcutils libstdc++ libc
 
 include $(BUILD_EXECUTABLE)
+
+
+include $(CLEAR_VARS)
+
+LOCAL_MODULE := libaosprecovery
+LOCAL_MODULE_TAGS := eng
+LOCAL_MODULES_TAGS = optional
+LOCAL_CFLAGS = 
+LOCAL_SRC_FILES = sideload.cpp  \
+		  bootloader.cpp \
+		  verifier.cpp \
+		  ../../system/core/toolbox/newfs_msdos.c \
+                  ../../system/core/toolbox/dynarray.c \
+                  ../../system/vold/vdc.c \
+                   prop.c
+
+ifeq ($(HAVE_SELINUX),true)
+LOCAL_SRC_FILES += \
+	../../system/core/toolbox/getenforce.c \
+	../../system/core/toolbox/setenforce.c \
+	../../system/core/toolbox/chcon.c \
+	../../system/core/toolbox/restorecon.c \
+	../../system/core/toolbox/runcon.c \
+	../../system/core/toolbox/getsebool.c \
+	../../system/core/toolbox/setsebool.c \
+	../../system/core/toolbox/load_policy.c
+
+endif
+
+LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include
+LOCAL_SHARED_LIBRARIES += libc liblog libcutils libmtdutils \
+			  libstdc++
+LOCAL_STATIC_LIBRARIES += libmincrypt
+
+include $(BUILD_SHARED_LIBRARY)
 
 
 #add extra library
