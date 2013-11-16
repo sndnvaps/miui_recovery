@@ -10,7 +10,8 @@ LOCAL_SRC_FILES := \
 
 LOCAL_C_INCLUDES := \
 	external/zlib \
-	external/safe-iop/include
+	external/safe-iop/include \
+	external/libselinux/include 
 
 LOCAL_STATIC_LIBRARIES := libselinux
 
