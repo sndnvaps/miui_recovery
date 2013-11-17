@@ -734,8 +734,7 @@ void root_device::change_sdcard_ext_sd_soft_link() {
 	} 
 
 	if (sdcard && ext_sd) { // we can mount '/sdcard' && '/external_sd'
-			miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
-			miuiIntent_send(INTENT_MOUNT, 1, "/external_sd");
+	
 			//soft link '/sdcard' to '/storage/sdcard1'
 			memset(cmd, '\0', 255);
 			snprintf(cmd, 255, "%s", "ln -s /sdcard  /storage/sdcard1");
@@ -749,14 +748,12 @@ void root_device::change_sdcard_ext_sd_soft_link() {
 			miuiIntent_send(INTENT_SYSTEM, 1, cmd);
 
 	} else if (sdcard) { // we only can mount '/sdcard'
-			miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
 			memset(cmd, '\0', 255);
 			snprintf(cmd, 255, "%s", "ln -s /sdcard /storage/sdcard0");
 			printf("%s\n", cmd);
 			miuiIntent_send(INTENT_SYSTEM, 1, cmd);
 
 	} else if (ext_sd) { // we only can mount '/external_sd 
-			miuiIntent_send(INTENT_MOUNT, 1, "/external_sd");
 			memset(cmd, '\0', 255);
 			snprintf(cmd, 255, "%s",  "ln -s /external_sd /storage/sdcard0");
 			printf("%s\n", cmd);
