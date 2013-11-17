@@ -794,6 +794,9 @@ int main(int argc, char **argv) {
     //load the volume for /etc/fstab 
     root_device *load_volume = new(root_device);
     load_volume->process_volumes();
+#ifdef FIX_MTK_PLATFORM_SDCARD_SOFT_LINK
+    load_volume->change_sdcard_ext_sd_soft_link(); // change the '/sdcard' && 'external_sd" soft link 
+#endif 
     ensure_path_mounted(LAST_LOG_FILE);
     rotate_last_logs(5);
     get_args(&argc, &argv);

@@ -50,6 +50,17 @@ class root_device {
 	public:
 	     static void process_volumes();
 
+	     /* change the soft link to the /sdcard && /external_sd
+	      *  if not inject '/external_sd 
+	      * '/sdcard' origin soft link to /storage/sdcard0
+	      * ---------------------------------------------
+	      * if inject '/external_sd , we need to change the soft link 
+	      *  '/sdcard -> '/storege/sdcard1' 
+	      *  '/external_sd -> '/storage/sdcard0'
+	      *  ----------------------------------
+	      * 
+	      */
+	     void change_sdcard_ext_sd_soft_link();
 	   
 };
 #endif

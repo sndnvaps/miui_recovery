@@ -198,7 +198,14 @@ void load_volume_table() {
     }
     free(BACKUP_FORMAT);
 }
-
+/*
+ * Volume* volume_for_path(const char* path) 
+ * @path, parase need to check ,if it exist on the recovery.fstab 
+ * if exist return the struct of volume 
+ * if not exist return NULL
+ *
+ *
+ */
 Volume* volume_for_path(const char* path) {
     int i;
     for (i = 0; i < num_volumes; ++i) {

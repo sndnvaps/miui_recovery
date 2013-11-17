@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <string.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -710,4 +711,60 @@ void root_device::process_volumes() {
     ui_set_show_text(0);
     */
 }
+
+void root_device::change_sdcard_ext_sd_soft_link() {
+	int ret = 0;
+	bool sdcard = false;
+	bool ext_sd = false;
+	char cmd[256] = '\0';
+	//mount '/sdcard' first
+	if ( 0 ==  ensure_path_mounted("/sdcard")) {
+		sdcard = true;  //we can mout '/sdcard'
+	} else {
+		sdcard = false;
+		fprintf(stderr, "Can't mount '/sdcard'\n");
+	}
+
+
+	if (0 != (ret = ensure_path_mounted("/external_sd"))) {
+		ext_sd = false;
+		fprintf(stderr, "can't mount '/external_sd\n");
+	} else {
+		ext_sd = true; // we can mount '/external_sd'
+	} 
+
+	if (sdcard && ext_sd) { // we can mount '/sdcard' && '/external_sd'
+			miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
+			miuiIntent_send(INTENT_MOUNT, 1, "/external_sd");
+			//soft link '/sdcard' to '/storage/sdcard1'
+			memset(cmd, '\0', 255);
+			snprintf(cmd, 255, "%s", "ln -s /sdcard  /storage/sdcard1");
+			printf("%s\n", cmd);
+			miuiIntent_send(INTENT_SYSTEM, 1, cmd);
+
+			//soft link '/external_sd' to '/storage/sdcard0'
+			memset(cmd, '\0', 255);
+			snprintf(cmd, 255, "%s", "ln -s /external_sd /storage/sdcard0");
+			printf("%s\n", cmd);
+			miuiIntent_send(INTENT_SYSTEM, 1, cmd);
+
+	} else if (sdcard) { // we only can mount '/sdcard'
+			miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
+			memset(cmd, '\0', 255);
+			snprintf(cmd, 255, "%s", "ln -s /sdcard /storage/sdcard0");
+			printf("%s\n", cmd);
+			miuiIntent_send(INTENT_SYSTEM, 1, cmd);
+
+	} else if (ext_sd) { // we only can mount '/external_sd 
+			miuiIntent_send(INTENT_MOUNT, 1, "/external_sd");
+			memset(cmd, '\0', 255);
+			snprintf(cmd, 255, "%s",  "ln -s /external_sd /storage/sdcard0");
+			printf("%s\n", cmd);
+			miuiIntent_send(INTENT_SYSTEM, 1, cmd);
+	}
+
+}
+
+
+
 

@@ -47,6 +47,26 @@ export LD_LIBRARY_PATH .:/sbin
 [how to support you device](devices/README.md)
 
 
+#Fix mtk platform soft link of '/sdcard' && '/external-sd'
+You need to add the below line to 'BoardConfig.mk'
+```
+FIX_MTK_PLATFORM_SDCARD_SOFT_LINK := true
+```
+```
+             /* change the soft link to the /sdcard && /external_sd
+	      *  if not inject '/external_sd 
+	      * '/sdcard' origin soft link to /storage/sdcard0
+	      * ---------------------------------------------
+	      * if inject '/external_sd , we need to change the soft link 
+	      *  '/sdcard -> '/storege/sdcard1' 
+	      *  '/external_sd -> '/storage/sdcard0'
+	      *  ----------------------------------
+	      */
+```
+
+
+
+
 
 
 
