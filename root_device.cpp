@@ -734,7 +734,7 @@ void root_device::change_sdcard_ext_sd_soft_link() {
 	} 
 
 	if (sdcard && ext_sd) { // we can mount '/sdcard' && '/external_sd'
-	
+
 			//soft link '/sdcard' to '/storage/sdcard1'
 			memset(cmd, '\0', 255);
 			snprintf(cmd, 255, "%s", "ln -s /sdcard  /storage/sdcard1");
