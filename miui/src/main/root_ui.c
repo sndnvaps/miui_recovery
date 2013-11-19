@@ -48,6 +48,10 @@
 #define ROOT_DEVICE 0x8
 #define DISABLE_OFFICAL_REC 0x9
 #define FREE_SDCARD_SPACE 0xA
+
+#define ENABLE_SKIP_CDI 0x1
+#define DISABLE_SKIP_CDI 0x2
+
 //INTENT_RUN_ORS ,1, filename
 //
 #define AUTHOR_INFO "/tmp/author_info.log"
@@ -251,7 +255,28 @@ static STATUS sideload_menu_show(struct _menuUnit *p) {
 }
 
 
+//skip CDI 
+//skip check device info 
+//on | off 
 
+static STATUS skip_CDI_menu_show(struct _menuUnit* p) {
+	switch (p->result) {
+		case  ENABLE_SKIP_CDI:
+			{
+			miuiIntent_send(INTENT_SKIP_CDI, 1, "on");
+			fprintf(stderr, "Enable skip check device info\n");
+			break;
+			}
+		case DISABLE_SKIP_CDI:
+			{
+			miuiIntent_send(INTENT_SKIP_CDI, 1, "off");
+			fprintf(stderr, "Disable skip check device info\n");
+			break;
+			}
+
+	}
+		return MENU_BACK;
+}
 
 /*
 //refresh_md5_check_state();
@@ -356,6 +381,35 @@ struct _menuUnit* ors_ui_init() {
 
 	return p;
 }
+/*
+#define ENABLE_SKIP_CDI 0x1
+#define DISABLE_SKIP_CDI 0x2
+*/
+struct _menuUnit* CDI_ui_init() {
+	struct _menuUnit* p = common_ui_init();
+	return_null_if_fail(p != NULL);
+	menuUnit_set_name(p, "<~root.CDI>");
+	menuUnit_set_title(p, "Check device info on | off");
+	menuUnit_set_icon(p, "root");
+	assert_if_fail(menuNode_init(p) != NULL);
+
+	//enable skip check device info (SKIP_CDI) -> ON
+	struct _menuUnit *temp = common_ui_init();
+	menuUnit_set_name(temp, "<~root.CDI.on>");
+	menuUnit_set_show(temp, &skip_CDI_menu_show);
+	temp->result = ENABLE_SKIP_CDI;
+	assert_if_fail(menuNode_add(p, temp) == RET_OK);
+
+	//disable skip check device info (SKIP_CDI) -> OFF
+	temp = common_ui_init();
+	menuUnit_set_name(temp, "<~root.CDI.off>");
+	menuUnit_set_show(temp, &skip_CDI_menu_show);
+	temp->result = DISABLE_SKIP_CDI;
+	assert_if_fail(menuNode_add(p, temp) == RET_OK);
+
+	return p;
+}
+
 
 struct _menuUnit* brightness_ui_init() {
 	struct _menuUnit* p = common_ui_init();
@@ -418,8 +472,14 @@ struct _menuUnit* root_ui_init() {
 
 	assert_if_fail(menuNode_init(p) != NULL);
 */
+
+	//show check device info 
+	struct _menuUnit *tmp;
+	tmp = CDI_ui_init();
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
 	//show info of the author 
-	struct _menuUnit *tmp = common_ui_init();
+	tmp = common_ui_init();
 	return_null_if_fail(tmp != NULL);
 	strncpy(tmp->name, "<~root.about.author>",MENU_LEN);
 	menuUnit_set_icon(tmp, "@info");

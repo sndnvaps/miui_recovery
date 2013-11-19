@@ -684,8 +684,18 @@ static intentResult* intent_sideload(int argc, char* argv[])
    // return miuiIntent_result_set(0, NULL);
 }
 
-
-
+// skip to check device info 
+// on | off 
+static intentResult * intent_skip_CDI(int argc, char *argv[])
+{
+    return_intent_result_if_fail(argc == 1);
+    finish_recovery(NULL);
+    if(strstr(argv[0], "on") != NULL)
+	    check_device_info_enabled = true;
+    else if(strstr(argv[0], "off") != NULL)
+	    check_device_info_enabled = false;
+    return miuiIntent_result_set(0, NULL);
+}
 static void
 print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
@@ -769,7 +779,7 @@ int main(int argc, char **argv) {
     printf("Starting recovery on %s", ctime(&start));
 
     //miuiIntent init
-    miuiIntent_init(10);
+    miuiIntent_init(20);
     miuiIntent_register(INTENT_MOUNT, &intent_mount);
     miuiIntent_register(INTENT_ISMOUNT, &intent_ismount);
     miuiIntent_register(INTENT_UNMOUNT, &intent_unmount);
@@ -787,6 +797,7 @@ int main(int argc, char **argv) {
     miuiIntent_register(INTENT_RUN_ORS, &intent_run_ors);
     miuiIntent_register(INTENT_BACKUP_FORMAT, &intent_backup_format);
     miuiIntent_register(INTENT_SIDELOAD, &intent_sideload);
+    miuiIntent_register(INTENT_SKIP_CDI, &intent_skip_CDI);
 
     device_ui_init();
     load_volume_table();

@@ -22,7 +22,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-
+extern bool check_device_info_enabled;
 enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT };
 // Install the package specified by root_path.  If INSTALL_SUCCESS is
 // returned and *wipe_cache is true on exit, caller should wipe the

@@ -47,7 +47,8 @@ extern "C" {
 #define UPDATER_API_VERSION 3 // this should equal RECOVERY_API_VERSION , define in Android.mk 
 
 bool skip_check_device_info(char *ignore_device_info);
-
+bool check_device_info_enabled = false; // default not enable to skip check 
+device_info 
 // If the package contains an update binary, extract it and run it.
 static int
 try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
@@ -190,12 +191,16 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
         if (command == NULL) {
             continue;
          } else if (strcmp(command, "assert") == 0) {
+		 if (check_device_info_enabled) {
                 char *ignore_device_info = strtok(NULL, " \n");
                 if (skip_check_device_info(ignore_device_info)) 
                         continue;
                 char *ignore_device_info_part_two = strtok(NULL, "||");
                 if (skip_check_device_info(ignore_device_info_part_two))
-                        continue;         
+                        continue;     
+		 } else {
+		 printf("assert command checking \n");
+		 }	 
         } else if (strcmp(command, "progress") == 0) {
             char* fraction_s = strtok(NULL, " \n");
             char* seconds_s = strtok(NULL, " \n");
