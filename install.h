@@ -22,13 +22,16 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
-extern bool check_device_info_enabled;
+//extern bool check_device_info_enabled;
+
 enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT };
 // Install the package specified by root_path.  If INSTALL_SUCCESS is
 // returned and *wipe_cache is true on exit, caller should wipe the
 // cache partition.
 int install_package(const char *root_path, int* wipe_cache,
                     const char* install_file);
+
+#define CDI_STATE  "/sdcard/miui_recovery/.cdi_state"
 
 #ifdef __cplusplus
 }

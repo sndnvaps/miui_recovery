@@ -691,9 +691,9 @@ static intentResult * intent_skip_CDI(int argc, char *argv[])
     return_intent_result_if_fail(argc == 1);
     finish_recovery(NULL);
     if(strstr(argv[0], "on") != NULL)
-	    check_device_info_enabled = true;
+	   write_string_to_file(CDI_STATE, "on");
     else if(strstr(argv[0], "off") != NULL)
-	    check_device_info_enabled = false;
+	   write_string_to_file(CDI_STATE, "off");
     return miuiIntent_result_set(0, NULL);
 }
 static void
