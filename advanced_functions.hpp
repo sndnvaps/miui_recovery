@@ -30,7 +30,9 @@ class MIFunc {
 		bool skip_cdi;
 		string backup_method;
 		
-}
+};
+
+#endif
 
 
 
