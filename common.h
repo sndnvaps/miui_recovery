@@ -15,7 +15,7 @@
 
 #ifndef RECOVERY_COMMON_H
 #define RECOVERY_COMMON_H
-
+#include "advanced_functions.hpp" 
 #include <stdio.h>
 
 #ifdef __cplusplus

@@ -77,7 +77,7 @@ static const char *TEMPORARY_LOG_FILE = "/tmp/miui_recovery.log";
 static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
-
+MIFunc *set_config;
 
 /*
  * The recovery tool communicates with the main system through /cache files.
@@ -652,13 +652,16 @@ static intentResult* intent_backup_format(int argc, char *argv[]) {
 	return_intent_result_if_fail(argc == 1);
 	finish_recovery(NULL);
 	if (strncmp(argv[0], "dup", 3) == 0) {
-		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"dup");
+		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_backup_format", argv[0]);
+		//write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"dup");
 		printf("Set backup format to dup\n");
 	} else if (strncmp(argv[0], "tar",3) == 0) {
-		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
+		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_backup_format", argv[0]);
+	//	write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
 		printf("Set backup format to tar\n");
 	} else if (strncmp(argv[0], "tgz",3) == 0) {
-		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tgz");
+		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_backup_format", argv[0]);
+		//write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tgz");
 		printf("Set backup format to tar.gz\n");
 	} else {
 		// nothing
@@ -691,11 +694,29 @@ static intentResult * intent_skip_CDI(int argc, char *argv[])
     return_intent_result_if_fail(argc == 1);
     finish_recovery(NULL);
     if(strstr(argv[0], "on") != NULL)
-	   write_string_to_file(CDI_STATE, "on");
+	    set_config->write_config_file(MIUI_SETTINGS_FILE, "skip_cdi", argv[0]);
+	   //write_string_to_file(CDI_STATE, "on");
     else if(strstr(argv[0], "off") != NULL)
-	   write_string_to_file(CDI_STATE, "off");
+	    set_config->write_config_file(MIUI_SETTINGS_FILE, "skip_cdi", argv[0]);
+	   //write_string_to_file(CDI_STATE, "off");
     return miuiIntent_result_set(0, NULL);
 }
+
+
+//generate md5sum 
+//enable | disable 
+static intentResult* intent_skip_md5sum(int argc, char *argv[]) {
+	return_intent_result_if_fail(argc == 1);
+	finish_recovery(NULL);
+	if (strstr(argv[0], "on") != NULL)
+		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_md5sum", argv[0]);
+	else if (strstr(argv[0], "off") != NULL)
+		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_md5sum", argv[0]);
+	return miuiIntent_result_set(0, NULL);
+}
+
+
+
 static void
 print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
@@ -798,6 +819,7 @@ int main(int argc, char **argv) {
     miuiIntent_register(INTENT_BACKUP_FORMAT, &intent_backup_format);
     miuiIntent_register(INTENT_SIDELOAD, &intent_sideload);
     miuiIntent_register(INTENT_SKIP_CDI, &intent_skip_CDI);
+    miuiIntent_register(INTENT_SKIP_MD5SUM, &intent_skip_md5sum);
 
     device_ui_init();
     load_volume_table();

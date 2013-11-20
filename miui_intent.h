@@ -34,7 +34,8 @@ typedef enum _intentType{
     INTENT_RUN_ORS,
     INTENT_BACKUP_FORMAT,
     INTENT_SIDELOAD,
-    INTENT_SKIP_CDI
+    INTENT_SKIP_CDI,
+    INTENT_SKIP_MD5SUM
 }intentType;
 
 #define INTENT_RESULT_LEN 25

@@ -16,9 +16,11 @@
 #include <sstream>
 
 #include "common.h"
-
+#include "advanced_functions.hpp"
+class MIFunc;
 
 utils::utils() {
+	enable_md5sum = true;
 }
 
 utils::~utils() {
@@ -160,5 +162,20 @@ int utils::write_file(string fn, string& line) {
 	LOGE("Cannot find file '%s'\n", fn.c_str());
 	return -1;
 }
+
+
+bool  utils::enabled_md5sum() {
+	MIFunc *get_value;
+	char val[PROPERTY_VALUE_MAX];
+	get_value->read_config_file(MIUI_SETTINGS_FILE, "nandroid_md5sum",val, "on");
+	if (strcmp(val, "off") == 0 || strcmp(val, "0") == 0) {
+		enable_md5sum = false;
+		return false;
+	}
+	enable_md5sum = true;
+	return true;
+}
+
+
 
 

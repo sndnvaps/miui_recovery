@@ -45,11 +45,10 @@ extern "C" {
 
 #define MIUI_RECOVERY "miui_recovery"
 
-#define STATE_MD5 "/sdcard/miui_recovery/backup/.md5_state"
 
 static bool enable_md5 = true; //default is true
 static void refresh_md5_check_state();
-
+MIFunc *get_value;
 static void ensure_directory(const char* dir);
 
 void nandroid_generate_timestamp_path(char* backup_path)
@@ -250,26 +249,6 @@ void nandroid_force_backup_format(const char* fmt) {
 }
 
 
-static void refresh_md5_check_state() {
-	char fmt[5];
-//	miuiIntent_sent(INTENT_MOUNT, 1, "/sdcard");
-	ensure_path_mounted("/sdcard");
-	FILE *f = fopen(STATE_MD5, "r");
-	if (NULL == f) {
-		enable_md5 = true;
-		return;
-	}
-	fread(fmt, 1, sizeof(fmt), f);
-	fclose(f);
-
-	if (0 == strcmp(fmt, "off")) {
-		enable_md5 = false;
-	}  else {
-		enable_md5 = true;
-	}
-}
-
-
 static void refresh_default_backup_handler() {
     char fmt[5];
     if (strlen(forced_backup_format) > 0) {
@@ -411,7 +390,7 @@ static int nandroid_backup_partition(const char* backup_path, const char* root) 
 extern "C" int nandroid_advanced_backup(const char* backup_path, const char *root)
 {
 
-      utils Utils;
+      utils *Utils;
     if (ensure_path_mounted(backup_path) != 0) {
         return print_and_error("Can't mount backup path.\n");
     }
@@ -442,12 +421,11 @@ extern "C" int nandroid_advanced_backup(const char* backup_path, const char *roo
 
     if (0 != (ret = nandroid_backup_partition(backup_path, root)))
         return ret;
-    //Utils.get_file_in_folder(backup_path);
-    //refresh_md5_check_state(); // on or off 
-   // if (enable_md5) {
-    Utils.Make_MD5(backup_path);
-	  //  utils::Make_MD5(backup_path);
-   // }
+   
+  
+   if (utils->enabled_md5sum()) {
+    Utils->Make_MD5(backup_path);
+   }
 
     sync();
     ui_print("\nBackup complete!\n");
@@ -544,17 +522,10 @@ int nandroid_backup(const char* backup_path)
         else if (0 != (ret = nandroid_backup_partition(backup_path, "/sd-ext")))
             return ret;
     }
-    // Utils.get_file_in_folder(backup_path);
-    //refresh_md5_check_state(); // on or off
-    // if (enable_md5) {
+   
+    if (utils->enabled_md5sum()) {
     Utils.Make_MD5(backup_path);
-    // }
-    //ui_print("Generating md5 sum...\n");
-    //sprintf(tmp, "nandroid-md5.sh %s", backup_path);
-    //if (0 != (ret = __system(tmp))) {
-     //   ui_print("Error while generating md5 sum!\n");
-      //  return ret;
-   // }
+    }
     
     sync();
     ui_set_background(BACKGROUND_ICON_NONE);
@@ -849,18 +820,14 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
 
     char tmp[PATH_MAX];
 
-   // ui_print("Checking MD5 sums...\n");
-   // sprintf(tmp, "cd %s && md5sum -c nandroid.md5", backup_path);
-   // if (0 != __system(tmp))
-      //  return print_and_error("MD5 mismatch!\n");
+  
    
     int ret; 
-   // refresh_md5_check_state();// on or off
-   // if (enable_md5) {
+   if (utils->enabled_md5sum()) {
 
      if(!Utils.Check_MD5(backup_path)) // 
 	     return print_and_error("MD5 mismatch!\n");
-
+     }
    
     if (restore_boot && NULL != volume_for_path("/boot") && 0 != (ret = nandroid_restore_partition(backup_path, "/boot")))
         return ret;
@@ -918,9 +885,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
     sync();
     ui_set_background(BACKGROUND_ICON_NONE);
     ui_reset_progress();
-   // printf("Restore path is: '%s' \n", backup_path); //if will get the full backup path
-    //sdcard/miui_recovery/backup/data/1130722-0718
-    //
+  
     ui_print("\nRestore complete!\n");
     return 0;
 }

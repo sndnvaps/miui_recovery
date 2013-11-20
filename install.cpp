@@ -47,36 +47,16 @@ extern "C" {
 #define UPDATER_API_VERSION 3 // this should equal RECOVERY_API_VERSION , define in Android.mk 
 
 bool skip_check_device_info(char *ignore_device_info);
-static bool check_device_info_enabled = false; // default not enable to skip check device_info 
 
-static char force_skip_CDI_state[5] = "";
-void forrce_CDI_state(const char* fmt) {
-	strcpy(force_skip_CDI_state, fmt);
-}
-
-static void refresh_CDI_state() {
-	char fmt[3];
-	if (strlen(force_skip_CDI_state) > 0) {
-		strcpy(fmt, force_skip_CDI_state);
-	} else {
-		ensure_path_mounted("/sdcard");
-		FILE *f = fopen(CDI_STATE, "r");
-		if (NULL == f) {
-			 check_device_info_enabled = false;
-			 return;
-		}
-		fread(fmt, 1, sizeof(fmt), f);
-		fclose(f);
-	}
-	fmt[3] = '\0';
-	if ( 0 == strcmp(fmt, "on")) {
-		 check_device_info_enabled = true;
-	} else if ( 0 == strcmp(fmt, "off")) {
-		 check_device_info_enabled = false;
-	} else {
-		 check_device_info_enabled = false;
+bool SKIP_CD_STATE() {
+	MIFunc *get_value;
+	char val[PROPERTY_VALUE_MAX];
+	get_value->read_config_file(MIUI_SETTTINGS_FILE, "skip_cdi", val, "off");
+	if (strcmp(val, "on") == 0 || strcmp(val, "1") == 0) {
+		return true;
 	}
 
+	return false;
 }
 
 			
@@ -223,7 +203,7 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
         if (command == NULL) {
             continue;
          } else if (strcmp(command, "assert") == 0) {
-		 if (check_device_info_enabled) {
+		 if (SKIP_CD_STATE()) {
                 char *ignore_device_info = strtok(NULL, " \n");
                 if (skip_check_device_info(ignore_device_info)) 
                         continue;

@@ -17,7 +17,9 @@ LOCAL_SRC_FILES := \
 	miui_func.cpp \
 	utils_func.cpp \
 	recovery.cpp \
-        sideload.cpp   	
+        sideload.cpp \
+	advanced_functions.cpp 
+        	
 
 
 
