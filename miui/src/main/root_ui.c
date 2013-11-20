@@ -390,7 +390,7 @@ struct _menuUnit* CDI_ui_init() {
 	return_null_if_fail(p != NULL);
 	menuUnit_set_name(p, "<~root.CDI>");
 	menuUnit_set_title(p, "Check device info on | off");
-	menuUnit_set_icon(p, "root");
+	menuUnit_set_icon(p, "@root");
 	assert_if_fail(menuNode_init(p) != NULL);
 
 	//enable skip check device info (SKIP_CDI) -> ON
