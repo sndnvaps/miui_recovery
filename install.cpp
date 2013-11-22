@@ -381,7 +381,7 @@ really_install_package(const char *path, int* wipe_cache)
         return INSTALL_CORRUPT;
     }
     
-    currstatus = iniparser_getboolean(ini_install, "zipflash:signaturecheck", -1);
+    currstatus = iniparser_getboolean(ini_install, "dev:signaturecheck", -1);
     iniparser_freedict(ini_install);
 	     
 

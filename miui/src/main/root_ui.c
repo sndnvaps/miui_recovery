@@ -56,18 +56,44 @@
 #define AUTHOR_INFO "/tmp/author_info.log"
 
 
+#define MIUI_SETTINGS_FILE "/sdcard/miui_recovery/settings.ini"
 
 dictionary * ini;
 
 int load_settings()
 {
 	struct stat st;
+	char cmd[256];
 
     miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
     if (stat("/sdcard/miui_recovery", &st) != 0) {
     miuiIntent_send(INTENT_SYSTEM, 1, "mkdir -p /sdcard/miui_recovery");
     }
-    ini = iniparser_load("/sdcard/miui_recovery/settings.ini");
+
+    if (stat(MIUI_SETTINGS_FILE, &st) != 0) {
+	    printf("Loading default settings.ini file\n");
+
+	   FILE *f = fopen(MIUI_SETTINGS_FILE, "w+");
+	   if (NULL == f) {
+		   printf("Error: Create [%s] failed\n", MIUI_SETTINGS_FILE);
+	   }
+
+	   fprintf(f, "%s", "#settings.ini for miui recovery\n"
+			   "# miui recovery v3.2.0\n"
+			   "# modify by Gaojiquan LaoYang\n"
+			   "[zipflash]\n"
+			   "md5sum=1\n"
+			   "CDI=1\n"
+			   "\n"
+			   "\n"
+			   "[dev]\n"
+			   "signaturecheck=0\n"
+			   "\n\n");
+	   fclose(f);
+
+    }
+
+    ini = iniparser_load(MIUI_SETTINGS_FILE);
     if (ini==NULL)
         return 1;
     
@@ -351,7 +377,7 @@ static STATUS sigcheck_menu_show(struct _menuUnit* p)
         return MENU_BACK;
     }
     
-    currstatus = iniparser_getboolean(ini, "zipflash:signaturecheck", -1);
+    currstatus = iniparser_getboolean(ini, "dev:signaturecheck", -1);
     char *statusdlg;
     char *btntext;
     
@@ -366,10 +392,10 @@ static STATUS sigcheck_menu_show(struct _menuUnit* p)
     if (RET_YES == miui_confirm(5, p->name, statusdlg, p->icon, btntext, "Cancel")) {
         if (currstatus == 0) {
             // enable ors wipe prompt
-            iniparser_set(ini, "zipflash:signaturecheck", "1");
+            iniparser_set(ini, "dev:signaturecheck", "1");
         } else if (currstatus == 1) {
             // disable ors wipe prompt
-            iniparser_set(ini, "zipflash:signaturecheck", "0");
+            iniparser_set(ini, "dev:signaturecheck", "0");
         }
         write_settings();
     }

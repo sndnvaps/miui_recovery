@@ -68,8 +68,12 @@ bool md5sum_enabled() {
     currstatus = iniparser_getboolean(ini, "zipflash:md5sum", -1);
     iniparser_freedict(ini);
 
-    if (currstatus)
+    if (currstatus) {
+	    printf("zipflash:md5sum = %d\n", currstatus);
 	    return true;
+    } else {
+	    printf("zipflash:md5sum = %d\n", currstatus);
+    }
 
     return false;
 }
@@ -350,7 +354,7 @@ static nandroid_backup_handler get_backup_handler(const char *backup_path) {
 static int nandroid_backup_partition_extended(const char* backup_path, const char* mount_point, int umount_when_finished) {
     int ret = 0;
     char* name = basename(mount_point);
-
+     utils Utils;
     struct stat file_info;
     int callback = stat("/sdcard/clockworkmod/.hidenandroidprogress", &file_info) != 0;
 
@@ -383,6 +387,14 @@ static int nandroid_backup_partition_extended(const char* backup_path, const cha
         ui_print("Error while making a backup image of %s!\n", mount_point);
         return ret;
     }
+   if (strstr(backup_path, "/data") != NULL ||
+		   strstr(backup_path, "/cache") != NULL ||
+		   strstr(backup_path, "/boot") != NULL ||
+		   strstr(backup_path, "/system") != NULL) {
+  if (md5sum_enabled()) {
+    Utils.Make_MD5(backup_path);
+         }
+   }
     return 0;
 }
 
@@ -413,10 +425,10 @@ static int nandroid_backup_partition(const char* backup_path, const char* root) 
     return nandroid_backup_partition_extended(backup_path, root, 1);
 }
 
-extern "C" int nandroid_advanced_backup(const char* backup_path, const char *root)
+int nandroid_advanced_backup(const char* backup_path, const char *root)
 {
 
-      utils *Utils;
+      utils Utils;
     if (ensure_path_mounted(backup_path) != 0) {
         return print_and_error("Can't mount backup path.\n");
     }
@@ -447,11 +459,6 @@ extern "C" int nandroid_advanced_backup(const char* backup_path, const char *roo
 
     if (0 != (ret = nandroid_backup_partition(backup_path, root)))
         return ret;
-   
-  
-   if (md5sum_enabled()) {
-    Utils->Make_MD5(backup_path);
-   }
 
     sync();
     ui_print("\nBackup complete!\n");
