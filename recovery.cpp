@@ -77,7 +77,6 @@ static const char *TEMPORARY_LOG_FILE = "/tmp/miui_recovery.log";
 static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
-MIFunc *set_config;
 
 /*
  * The recovery tool communicates with the main system through /cache files.
@@ -652,16 +651,13 @@ static intentResult* intent_backup_format(int argc, char *argv[]) {
 	return_intent_result_if_fail(argc == 1);
 	finish_recovery(NULL);
 	if (strncmp(argv[0], "dup", 3) == 0) {
-		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_backup_format", argv[0]);
-		//write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"dup");
+		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"dup");
 		printf("Set backup format to dup\n");
 	} else if (strncmp(argv[0], "tar",3) == 0) {
-		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_backup_format", argv[0]);
-	//	write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
+         	write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
 		printf("Set backup format to tar\n");
 	} else if (strncmp(argv[0], "tgz",3) == 0) {
-		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_backup_format", argv[0]);
-		//write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tgz");
+		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tgz");
 		printf("Set backup format to tar.gz\n");
 	} else {
 		// nothing
@@ -696,8 +692,8 @@ print_property(const char *key, const char *name, void *cookie) {
 
 static void setup_adbd() {
 	struct stat st;
-	static char* key_src = "/data/misc/adb/adb_keys";
-	static char* key_dest = "/adb_keys";
+	static char* key_src = (char*)"/data/misc/adb/adb_keys";
+	static char* key_dest = (char*)"/adb_keys";
 	//Mount /data and copy adb_keys to root if it exists
 	miuiIntent_send(INTENT_MOUNT, 1, "/data");
 	if (stat(key_src, &st) == 0) { //key_src exists

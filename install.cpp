@@ -47,12 +47,12 @@ extern "C" {
 
 #define UPDATER_API_VERSION 3 // this should equal RECOVERY_API_VERSION , define in Android.mk 
 
-dictionary * ini;
+dictionary * ini_install;
 
 int load_cotsettings()
 {
-    ini = iniparser_load("/sdcard/miui_recovery/settings.ini");
-    if (ini==NULL)
+    ini_install = iniparser_load("/sdcard/miui_recovery/settings.ini");
+    if (ini_install==NULL)
         return 1;
         
     return 0;
@@ -66,7 +66,6 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     const ZipEntry* binary_entry =
             mzFindZipEntry(zip, ASSUMED_UPDATE_BINARY_NAME);
     struct stat st;
-    refresh_CDI_state();
     if (binary_entry == NULL) {
 	    const ZipEntry* update_script_entry = 
 		    mzFindZipEntry(zip, ASSUMED_UPDATE_SCRIPT_NAME);
@@ -82,7 +81,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         return INSTALL_ERROR;
     }
 
-    char* binary = "/tmp/update_binary";
+    char* binary = (char*)"/tmp/update_binary";
     unlink(binary);
     int fd = creat(binary, 0755);
     if (fd < 0) {
@@ -140,8 +139,8 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         return INSTALL_CORRUPT;
     }
     
-    currstatus = iniparser_getboolean(ini, "zipflash:CDI", -1);
-    iniparser_freedict(ini);
+    currstatus = iniparser_getboolean(ini_install, "zipflash:CDI", -1);
+    iniparser_freedict(ini_install);
 
 
     int pipefd[2];
@@ -382,8 +381,8 @@ really_install_package(const char *path, int* wipe_cache)
         return INSTALL_CORRUPT;
     }
     
-    currstatus = iniparser_getboolean(ini, "zipflash:signaturecheck", -1);
-    iniparser_freedict(ini);
+    currstatus = iniparser_getboolean(ini_install, "zipflash:signaturecheck", -1);
+    iniparser_freedict(ini_install);
 	     
 
     if (currstatus == 1) {
@@ -453,7 +452,7 @@ bool skip_check_device_info(char *ignore_device_info) {
         if (strstr(ignore_device_info, "ro.product.device") != NULL ||
                         strstr(ignore_device_info, "ro.build.product") != NULL ||
                         strstr(ignore_device_info, "ro.product.board") != NULL ||
-                        ststr(ignore_device_info, "ro.sdupdate.Check_info") != NULL) {
+                        strstr(ignore_device_info, "ro.sdupdate.Check_info") != NULL) {
                 snprintf(tmpbuf, 255, "<#selectbg_g><b>Ignore device_info_check \n</b></#>");
                 miuiInstall_set_text(tmpbuf);
                 return true;

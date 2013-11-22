@@ -152,4 +152,4 @@ root.md5sum=开启/关闭生成md5sum
 root.md5sum.on=开启
 root.md5sum.off=关闭
 
-
+root.dev=开发者选项

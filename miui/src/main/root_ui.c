@@ -200,7 +200,7 @@ static STATUS brightness_menu_show(struct _menuUnit* p) {
 //callback function, success return 0, non-zero fail
  int ors_file_run(char *file_name, int file_len, void* data) {
 	 return_val_if_fail(file_name != NULL, RET_FAIL);
-	 return_val_if_fail(strlen(file_name) <= file_len, RET_INVALID_ARG);
+	 return_val_if_fail((int)strlen(file_name) <= file_len, RET_INVALID_ARG);
 	 return_val_if_fail(data != NULL, RET_FAIL);
 	 struct _menuUnit* p = (pmenuUnit)data;
 	  if(RET_YES == miui_confirm(3, p->name, p->desc, p->icon)) {
@@ -376,44 +376,6 @@ static STATUS sigcheck_menu_show(struct _menuUnit* p)
     return MENU_BACK;
 }
 
-struct _menuUnit* dev_ui_init() {
-	struct _menuUnit *p = common_ui_init();
-	return_null_if_fail(p != NULL);
-	menuUnit_set_name(p, "<~root.dev>");
-	menuUnit_set_title(p, "dev opts");
-	menuUnit_set_icon(p, "@root");
-	assert_if_fail(menuNode_init(p) != NULL);
-
-	// skip check device info (SKIP_CDI) 
-	struct _menuUnit *tmp = common_ui_init();
-	menuUnit_set_name(tmp, "<~root.CDI>");
-	menuUnit_set_show(tmp, &skip_CDI_menu_show);
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
-
-        // generate md5sum 
-	tmp = common_ui_init();
-	menuUnit_set_name(tmp, "<~root.md5sum>");
-	menuUnit_set_show(tmp, &set_md5sum_state);
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
-
-	//sigcheck 
-	tmp = common_ui_init();
-	menuUnit_set_name(tmp, "<~root.sigcheck>");
-	menuUnit_set_show(tmp, &sigcheck_menu_show);
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
-
-	//set Brightness
-	tmp = brightness_ui_init();
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
-           
-	//ORS function 
-	tmp = ors_ui_init();
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
-
-	return p;
-}
-
-
 
 
 struct _menuUnit* ors_ui_init() {
@@ -490,6 +452,44 @@ struct _menuUnit* brightness_ui_init() {
 	assert_if_fail(menuNode_add(p, temp) == RET_OK);
 	return p;
 }
+
+struct _menuUnit* dev_ui_init() {
+	struct _menuUnit *p = common_ui_init();
+	return_null_if_fail(p != NULL);
+	menuUnit_set_name(p, "<~root.dev>");
+	menuUnit_set_title(p, "dev opts");
+	menuUnit_set_icon(p, "@root");
+	assert_if_fail(menuNode_init(p) != NULL);
+
+	// skip check device info (SKIP_CDI) 
+	struct _menuUnit *tmp = common_ui_init();
+	menuUnit_set_name(tmp, "<~root.CDI>");
+	menuUnit_set_show(tmp, &skip_CDI_menu_show);
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+        // generate md5sum 
+	tmp = common_ui_init();
+	menuUnit_set_name(tmp, "<~root.md5sum>");
+	menuUnit_set_show(tmp, &set_md5sum_state);
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+	//sigcheck 
+	tmp = common_ui_init();
+	menuUnit_set_name(tmp, "<~root.sigcheck>");
+	menuUnit_set_show(tmp, &sigcheck_menu_show);
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+	//set Brightness
+	tmp = brightness_ui_init();
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+           
+	//ORS function 
+	tmp = ors_ui_init();
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+	return p;
+}
+
 
 struct _menuUnit* root_ui_init() {
 

@@ -149,4 +149,6 @@ root.md5sum=Turn on/off md5sum generate md5
 root.md5sum.on=Turn on
 root.md5sum.off=Turn off
 
+root.dev=Dev Opt
+
 

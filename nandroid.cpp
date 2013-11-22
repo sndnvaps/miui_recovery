@@ -50,7 +50,7 @@ extern "C" {
 
 dictionary * ini;
 
-int load_cotsettings()
+int load_miui_settings()
 {
     ini = iniparser_load("/sdcard/miui_recovery/settings.ini");
     if (ini==NULL)
@@ -61,7 +61,7 @@ int load_cotsettings()
 
 bool md5sum_enabled() {
     int currstatus;
-    if (1==load_cotsettings()) {
+    if (1==load_miui_settings()) {
         return false;
     }
     
