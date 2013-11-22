@@ -33,6 +33,7 @@ extern "C" {
 #include "mtdutils/mounts.h"
 #include "mtdutils/mtdutils.h"
 #include "miui/src/miui.h"
+#include "iniparser/iniparser.h"
 }
 
 #include "roots.h"
@@ -46,23 +47,22 @@ extern "C" {
 
 #define UPDATER_API_VERSION 3 // this should equal RECOVERY_API_VERSION , define in Android.mk 
 
-bool skip_check_device_info(char *ignore_device_info);
+dictionary * ini;
 
-bool SKIP_CD_STATE() {
-	MIFunc *get_value;
-	char val[PROPERTY_VALUE_MAX];
-	get_value->read_config_file(MIUI_SETTTINGS_FILE, "skip_cdi", val, "off");
-	if (strcmp(val, "on") == 0 || strcmp(val, "1") == 0) {
-		return true;
-	}
-
-	return false;
+int load_cotsettings()
+{
+    ini = iniparser_load("/sdcard/miui_recovery/settings.ini");
+    if (ini==NULL)
+        return 1;
+        
+    return 0;
 }
 
+
+bool skip_check_device_info(char *ignore_device_info);
 			
 // If the package contains an update binary, extract it and run it.
-static int
-try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
+static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
     const ZipEntry* binary_entry =
             mzFindZipEntry(zip, ASSUMED_UPDATE_BINARY_NAME);
     struct stat st;
@@ -135,6 +135,13 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
     }
     // <-- end 
 
+    int currstatus;
+    if (1==load_cotsettings()) {
+        return INSTALL_CORRUPT;
+    }
+    
+    currstatus = iniparser_getboolean(ini, "zipflash:CDI", -1);
+    iniparser_freedict(ini);
 
 
     int pipefd[2];
@@ -203,7 +210,7 @@ try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
         if (command == NULL) {
             continue;
          } else if (strcmp(command, "assert") == 0) {
-		 if (SKIP_CD_STATE()) {
+		 if (currstatus) {
                 char *ignore_device_info = strtok(NULL, " \n");
                 if (skip_check_device_info(ignore_device_info)) 
                         continue;
@@ -369,15 +376,17 @@ really_install_package(const char *path, int* wipe_cache)
     ui_print("Opening update package...\n");
 
     int err;
-  /* Remove signature check to support ors */
-    /*
-    int sig_stat = 0;
-     sig_stat = check_sig();
-             if (sig_stat == -1) {
-		     printf("skip Signature check ...\n");
-	     }
+ 
+    int currstatus;
+    if (1==load_cotsettings()) {
+        return INSTALL_CORRUPT;
+    }
+    
+    currstatus = iniparser_getboolean(ini, "zipflash:signaturecheck", -1);
+    iniparser_freedict(ini);
+	     
 
-    if (sig_stat == 1) {
+    if (currstatus == 1) {
 	    int numkeys;
 	    RSAPublicKey* loadedkeys = load_keys(PUBLIC_KEYS_FILE, &numkeys);
 	   if (loadedkeys == NULL) {
@@ -397,7 +406,7 @@ really_install_package(const char *path, int* wipe_cache)
 			    return INSTALL_CORRUPT;
 	    }
     }
-*/
+
 
     /* Try to open the package.
      */

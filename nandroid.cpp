@@ -29,6 +29,7 @@ extern "C" {
 #include "mtdutils/mounts.h"
 #include "yaffs2_static/mkyaffs2image.h"
 #include "yaffs2_static/unyaffs.h"
+#include "iniparser/iniparser.h"
 }
 
 #include "cutils/properties.h"
@@ -43,12 +44,37 @@ extern "C" {
 #include "miui_func.hpp"
 #include "utils_func.hpp"
 
+
 #define MIUI_RECOVERY "miui_recovery"
 
 
-static bool enable_md5 = true; //default is true
-static void refresh_md5_check_state();
-MIFunc *get_value;
+dictionary * ini;
+
+int load_cotsettings()
+{
+    ini = iniparser_load("/sdcard/miui_recovery/settings.ini");
+    if (ini==NULL)
+        return 1;
+        
+    return 0;
+}
+
+bool md5sum_enabled() {
+    int currstatus;
+    if (1==load_cotsettings()) {
+        return false;
+    }
+    
+    currstatus = iniparser_getboolean(ini, "zipflash:md5sum", -1);
+    iniparser_freedict(ini);
+
+    if (currstatus)
+	    return true;
+
+    return false;
+}
+
+
 static void ensure_directory(const char* dir);
 
 void nandroid_generate_timestamp_path(char* backup_path)
@@ -423,7 +449,7 @@ extern "C" int nandroid_advanced_backup(const char* backup_path, const char *roo
         return ret;
    
   
-   if (utils->enabled_md5sum()) {
+   if (md5sum_enabled()) {
     Utils->Make_MD5(backup_path);
    }
 
@@ -523,7 +549,7 @@ int nandroid_backup(const char* backup_path)
             return ret;
     }
    
-    if (utils->enabled_md5sum()) {
+    if (md5sum_enabled()) {
     Utils.Make_MD5(backup_path);
     }
     
@@ -823,8 +849,7 @@ int nandroid_restore(const char* backup_path, int restore_boot, int restore_syst
   
    
     int ret; 
-   if (utils->enabled_md5sum()) {
-
+    if (md5sum_enabled()) {
      if(!Utils.Check_MD5(backup_path)) // 
 	     return print_and_error("MD5 mismatch!\n");
      }

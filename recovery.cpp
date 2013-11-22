@@ -687,34 +687,6 @@ static intentResult* intent_sideload(int argc, char* argv[])
    // return miuiIntent_result_set(0, NULL);
 }
 
-// skip to check device info 
-// on | off 
-static intentResult * intent_skip_CDI(int argc, char *argv[])
-{
-    return_intent_result_if_fail(argc == 1);
-    finish_recovery(NULL);
-    if(strstr(argv[0], "on") != NULL)
-	    set_config->write_config_file(MIUI_SETTINGS_FILE, "skip_cdi", argv[0]);
-	   //write_string_to_file(CDI_STATE, "on");
-    else if(strstr(argv[0], "off") != NULL)
-	    set_config->write_config_file(MIUI_SETTINGS_FILE, "skip_cdi", argv[0]);
-	   //write_string_to_file(CDI_STATE, "off");
-    return miuiIntent_result_set(0, NULL);
-}
-
-
-//generate md5sum 
-//enable | disable 
-static intentResult* intent_skip_md5sum(int argc, char *argv[]) {
-	return_intent_result_if_fail(argc == 1);
-	finish_recovery(NULL);
-	if (strstr(argv[0], "on") != NULL)
-		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_md5sum", argv[0]);
-	else if (strstr(argv[0], "off") != NULL)
-		set_config->write_config_file(MIUI_SETTINGS_FILE, "nandroid_md5sum", argv[0]);
-	return miuiIntent_result_set(0, NULL);
-}
-
 
 
 static void
@@ -818,8 +790,6 @@ int main(int argc, char **argv) {
     miuiIntent_register(INTENT_RUN_ORS, &intent_run_ors);
     miuiIntent_register(INTENT_BACKUP_FORMAT, &intent_backup_format);
     miuiIntent_register(INTENT_SIDELOAD, &intent_sideload);
-    miuiIntent_register(INTENT_SKIP_CDI, &intent_skip_CDI);
-    miuiIntent_register(INTENT_SKIP_MD5SUM, &intent_skip_md5sum);
 
     device_ui_init();
     load_volume_table();

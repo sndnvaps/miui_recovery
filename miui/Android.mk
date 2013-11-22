@@ -115,7 +115,8 @@ ifeq ($(BOARD_HAS_FLIPPED_SCREEN), true)
 endif
 
 LOCAL_SHARED_LIBRARIES += libc libm libz
-LOCAL_STATIC_LIBRARIES := libft2 libpng
+LOCAL_STATIC_LIBRARIES := libft2 libpng \
+	                  libiniparser 
 LOCAL_MODULE := libmiui
 LOCAL_MODULE_TAGS := eng
 
