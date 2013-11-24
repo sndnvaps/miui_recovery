@@ -724,7 +724,28 @@ static void setup_adbd() {
 
 int main(int argc, char **argv) {
 
-        //for adb sideload 
+    // Recovery needs to install world-readable files, so clear umask
+    // set by init
+    umask(0);
+
+   time_t start = time(NULL);
+
+    // If these fail, there's not really anywhere to complain...
+#ifndef DEBUG
+    unlink(TEMPORARY_LOG_FILE);
+#endif
+
+    freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
+    freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+
+ // If this binary is started with the single argument "--adbd",
+    // instead of being the normal recovery binary, it turns into kind
+    // of a stripped-down version of adbd that only supports the
+    // 'sideload' command.  Note this must be a real argument, not
+    // anything in the command file or bootloader control block; the
+    // only way recovery should be run with this argument is when it
+    // starts a copy of itself from the apply_from_adb() function.
+ 
 	if (argc == 2 && strcmp(argv[1], "--adbd") == 0) {
 		adb_main();
 		return 0;
@@ -756,15 +777,7 @@ int main(int argc, char **argv) {
 	}
 
 	
-    time_t start = time(NULL);
-
-    // If these fail, there's not really anywhere to complain...
-#ifndef DEBUG
-    unlink(TEMPORARY_LOG_FILE);
-#endif
-
-    freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
-    freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+   
     printf("Starting recovery on %s", ctime(&start));
 
     //miuiIntent init
@@ -877,10 +890,10 @@ int main(int argc, char **argv) {
 	//we are starting up in user initiated recovery here
 	//let's set up some defaut options;
 	ui_set_background(BACKGROUND_ICON_INSTALLING);
-	if( 0 == root.check_for_script_file("/cache/recovery/openrecoveryscript")) {
+	if( 0 == load_volume->check_for_script_file("/cache/recovery/openrecoveryscript")) {
 		LOGI("Runing openrecoveryscript...\n");
 		int ret;
-		if (0 == (ret = root.run_ors_script("/tmp/openrecoveryscript"))) {
+		if (0 == (ret = load_volume->run_ors_script("/tmp/openrecoveryscript"))) {
 			status = INSTALL_SUCCESS;
 			//ui_set_show_text(0);
 		} else {
@@ -898,6 +911,7 @@ int main(int argc, char **argv) {
     device_main_ui_release();
     // Otherwise, get ready to boot the main system...
     finish_recovery(send_intent);
+    
     ui_print("Rebooting...\n");
     android_reboot(ANDROID_RB_RESTART, 0, 0);
     return EXIT_SUCCESS;

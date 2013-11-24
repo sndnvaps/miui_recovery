@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 #include "common.h"
@@ -47,6 +49,8 @@ extern "C" {
 
 #define UPDATER_API_VERSION 3 // this should equal RECOVERY_API_VERSION , define in Android.mk 
 
+
+
 dictionary * ini_install;
 
 int load_cotsettings()
@@ -57,6 +61,7 @@ int load_cotsettings()
         
     return 0;
 }
+
 
 
 bool skip_check_device_info(char *ignore_device_info);
@@ -81,15 +86,25 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         return INSTALL_ERROR;
     }
 
-    char* binary = (char*)"/tmp/update_binary";
-    unlink(binary);
-    int fd = creat(binary, 0755);
+    string binary_str = "/tmp/updater";
+    unlink(binary_str.c_str());
+   
+   int fd;
+  if (0 > ( fd = open(binary_str.c_str(), (O_CREAT|O_WRONLY|O_TRUNC), 0755))) {
+		   printf("create /tmp/updater error (%s)\n", strerror(errno));
+  }
+
+
+	   
     if (fd < 0) {
         mzCloseZipArchive(zip);
-        LOGE("Can't make %s\n", binary);
+        LOGE("Can't make %s\n", binary_str.c_str());
         return INSTALL_ERROR;
     }
+
+
     bool ok = mzExtractZipEntryToFile(zip, binary_entry, fd);
+
     close(fd);
     mzCloseZipArchive(zip);
 
@@ -100,40 +115,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     }
 
 
-    //If exists, extract file_contexts from the zip file
-    //Thanks twrp's Dees-Troy
-    // begin -->
-    const ZipEntry* selinx_contexts = mzFindZipEntry(zip, "file_contexts");
-    if (selinx_contexts == NULL) {
-	    mzCloseZipArchive(zip);
-	    LOGI("Zip does not contain SElinux file_contexts file in its root.\n");
-    } else {
-	    char *output_filename = "/file_contexts";
-	    LOGI("Zip contains SElinux file_contexts file in its root. Extracting to '%s'\n", output_filename);
-
-	    //Delete any file_contexts
-	    if (stat(output_filename,&st) == 0) 
-		    unlink(output_filename);
-
-	    int file_contexts_fd = creat(output_filename, 0644);
-	    if (file_contexts_fd < 0) {
-		    mzCloseZipArchive(zip);
-		    LOGE("Could not extract file_contexts to '%s'\n", output_filename);
-		    return INSTALL_ERROR;
-	    }
-
-	    ok = mzExtractZipEntryToFile(zip, selinx_contexts, file_contexts_fd);
-    close(file_contexts_fd);
-
-    if (!ok) {
-	    mzCloseZipArchive(zip);
-	    LOGE("Could not extract '%s'\n",ASSUMED_UPDATE_BINARY_NAME);
-	    return INSTALL_ERROR;
-    }
-    mzCloseZipArchive(zip);
-    }
-    // <-- end 
-
+ 
     int currstatus;
     if (1==load_cotsettings()) {
         return INSTALL_CORRUPT;
@@ -141,6 +123,9 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     
     currstatus = iniparser_getboolean(ini_install, "zipflash:CDI", -1);
     iniparser_freedict(ini_install);
+
+
+       
 
 
     int pipefd[2];
@@ -181,12 +166,13 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     //   - the name of the package zip file.
     //
 
-    char** args = (char**)malloc(sizeof(char*) * 5);
-    args[0] = binary;
+    const char** args = ( const char**)malloc(sizeof(char*) * 5);
+    args[0] = binary_str.c_str();
     //args[1] = EXPAND(RECOVERY_API_VERSION);   // defined in Android.mk
     args[1] = (char*)EXPAND(UPDATER_API_VERSION);
-    args[2] = (char*)malloc(10);
-    sprintf(args[2], "%d", pipefd[1]);
+    char *temp = (char*)malloc(10);
+    sprintf(temp, "%d", pipefd[1]);
+    args[2] = temp;
     args[3] = (char*)path;
     args[4] = NULL;
 
@@ -194,8 +180,8 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     if (pid == 0) {
 	setenv("UPDATE_PACKAGE", path, 1);
         close(pipefd[0]);
-        execv(binary, args);
-        //fprintf(stdout, "E:Can't run %s (%s)\n", binary, strerror(errno));
+        execv(binary_str.c_str(), (char* const *) args);
+        fprintf(stdout, "E:Can't run %s (%s)\n", binary_str.c_str(), strerror(errno));
         _exit(-1);
     }
     close(pipefd[1]);
@@ -203,6 +189,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     *wipe_cache = 0;
 
     char buffer[1024];
+
     FILE* from_child = fdopen(pipefd[0], "r");
     while (fgets(buffer, sizeof(buffer), from_child) != NULL) {
         char* command = strtok(buffer, " \n");
@@ -262,6 +249,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         }
     }
     fclose(from_child);
+    
 
     int status;
     
@@ -273,6 +261,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         miuiInstall_set_text(tmpbuf);
         return INSTALL_ERROR;
     }
+
     mzCloseZipArchive(zip); 
     return INSTALL_SUCCESS;
 }
@@ -359,8 +348,7 @@ exit:
     return NULL;
 }
 
-static int
-really_install_package(const char *path, int* wipe_cache)
+static int really_install_package(const char *path, int* wipe_cache)
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_print("Finding update package...\n");
@@ -374,8 +362,6 @@ really_install_package(const char *path, int* wipe_cache)
 
     ui_print("Opening update package...\n");
 
-    int err;
- 
     int currstatus;
     if (1==load_cotsettings()) {
         return INSTALL_CORRUPT;
@@ -383,7 +369,8 @@ really_install_package(const char *path, int* wipe_cache)
     
     currstatus = iniparser_getboolean(ini_install, "dev:signaturecheck", -1);
     iniparser_freedict(ini_install);
-	     
+
+     int err = 0;	     
 
     if (currstatus == 1) {
 	    int numkeys;
@@ -409,7 +396,9 @@ really_install_package(const char *path, int* wipe_cache)
 
     /* Try to open the package.
      */
+ 
     ZipArchive zip;
+     err = 0;
     err = mzOpenZipArchive(path, &zip);
     if (err != 0) {
         LOGE("Can't open %s\n(%s)\n", path, err != -1 ? strerror(err) : "bad");
@@ -419,6 +408,7 @@ really_install_package(const char *path, int* wipe_cache)
     /* Verify and install the contents of the package.
      */
     ui_print("Installing update...\n");
+   
     return try_update_binary(path, &zip, wipe_cache);
 }
 

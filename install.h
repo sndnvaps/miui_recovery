@@ -31,7 +31,6 @@ enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT };
 int install_package(const char *root_path, int* wipe_cache,
                     const char* install_file);
 
-#define CDI_STATE  "/sdcard/miui_recovery/.cdi_state"
 
 #ifdef __cplusplus
 }
