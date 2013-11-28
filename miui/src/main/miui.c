@@ -107,7 +107,9 @@ STATUS main_ui_init()
     ui_init();
     //graphic thread start, print background
     ag_init();
-
+#ifdef BOARD_HAS_FLIPPED_SCREEN
+    gr_flip();
+#endif
     //miui_ui start
     miui_ui_start();
 	//device config after miui_ui start

@@ -114,17 +114,6 @@ include $(BUILD_PREBUILT)
 
 endif
 
-include $(CLEAR_VARS)
-LOCAL_FORCE_STATIC_EXECUTABLE := true
-LOCAL_MODULE := call_busybox
-LOCAL_MODULE_PATH := $(TARGET_OUT_OPTIONAL_EXECUTABLES)
-#LOCAL_MODULE_TAGS := debug
-LOCAL_SRC_FILES := call_busybox.c
-LOCAL_STATIC_LIBRARIES :=  libc libbusybox
-include $(BUILD_EXECUTABLE)
-
-
-
 ifeq ($(BOARD_HAS_NO_REAL_SDCARD),)
 	#parted
 	include $(CLEAR_VARS)

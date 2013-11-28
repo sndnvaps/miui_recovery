@@ -365,6 +365,9 @@ byte      ag_isfreetype(byte isbig);
 byte      ag_fontready(byte isbig);
 CANVAS *  agc();          // Get Main MIUI Graph Canvas
 byte      ag_init();      // Init MIUI Graph and Framebuffers
+#ifdef BOARD_HAS_FLIPPED_SCREEN
+void gr_flip();           // flip buffer 180 degrees for devices with physically inverted screen 
+#endif
 void      ag_close_thread(); // Close Graph Thread
 void      ag_close();     // Close MIUI Graph and Framebuffers
 void      ag_changecolor(char , char, char, char); // Change Color Space

@@ -15,7 +15,6 @@
 
 #ifndef RECOVERY_COMMON_H
 #define RECOVERY_COMMON_H
-
 #include <stdio.h>
 
 #ifdef __cplusplus

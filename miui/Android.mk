@@ -96,10 +96,6 @@ LOCAL_CFLAGS += -I$(LOCAL_PATH)/include \
 		-I$(LOCAL_PATH)/../../../external/zlib \
 		-I$(LOCAL_PATH)/../../../external/libpng
 #LOCAL_CFLAGS += -D_MIUI_NODEBUG
-LOCAL_SHARED_LIBRARIES += libc libm libz
-LOCAL_STATIC_LIBRARIES := libft2 libpng
-LOCAL_MODULE := libmiui
-LOCAL_MODULE_TAGS := eng
 ifeq ($(BUILD_CHN_REC),)
 	LOCAL_CFLAGS := -DBUILD_CHN_REC
 endif
@@ -113,6 +109,16 @@ endif
 ifeq ($(TARGET_RECOVERY_PIXEL_FORMAT), "BGR_565")
 	LOCAL_CFLAGS += -DPIXEL_FORMAT_BGR_565 
 endif
+
+ifeq ($(BOARD_HAS_FLIPPED_SCREEN), true)
+    LOCAL_CFLAGS += -DBOARD_HAS_FLIPPED_SCREEN
+endif
+
+LOCAL_SHARED_LIBRARIES += libc libm libz
+LOCAL_STATIC_LIBRARIES := libft2 libpng \
+	                  libiniparser 
+LOCAL_MODULE := libmiui
+LOCAL_MODULE_TAGS := eng
 
 #include $(BUILD_SHARED_LIBRARY)
 include $(BUILD_STATIC_LIBRARY)
