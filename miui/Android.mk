@@ -2,6 +2,12 @@ LOCAL_PATH := $(call my-dir)
 
 include $(CLEAR_VARS)
 
+MIUI_VERSION := 4.0.0
+ifndef MIUI_NAME
+    MIUI_NAME := MIUI REC by LaoYang 
+endif
+MIUI_BUILD := $(shell date +"%Y-%M-%d")
+
 
 libmiui_common_includes = $(LOCAL_PATH)/include \
 			  external/zlib \
@@ -44,41 +50,13 @@ libmiui_common_src_files := \
     src/main/miui.c \
     src/main/root_ui.c 
 
-# libs/freetype/autofit/autofit.c \
-    libs/freetype/base/basepic.c \
-    libs/freetype/base/ftapi.c \
-    libs/freetype/base/ftbase.c \
-    libs/freetype/base/ftbbox.c \
-    libs/freetype/base/ftbitmap.c \
-    libs/freetype/base/ftdbgmem.c \
-    libs/freetype/base/ftdebug.c \
-    libs/freetype/base/ftglyph.c \
-    libs/freetype/base/ftinit.c \
-    libs/freetype/base/ftpic.c \
-    libs/freetype/base/ftstroke.c \
-    libs/freetype/base/ftsynth.c \
-    libs/freetype/base/ftsystem.c \
-    libs/freetype/cff/cff.c \
-    libs/freetype/pshinter/pshinter.c \
-    libs/freetype/psnames/psnames.c \
-    libs/freetype/raster/raster.c \
-    libs/freetype/sfnt/sfnt.c \
-    libs/freetype/smooth/smooth.c \
-    libs/freetype/truetype/truetype.c \
-    libs/png/png.c \
-    libs/png/pngerror.c \
-    libs/png/pnggccrd.c \
-    libs/png/pngget.c \
-    libs/png/pngmem.c \
-    libs/png/pngpread.c \
-    libs/png/pngread.c \
-    libs/png/pngrio.c \
-    libs/png/pngrtran.c \
-    libs/png/pngrutil.c \
-    libs/png/pngset.c \
-    libs/png/pngtrans.c \
-    libs/png/pngvcrd.c \
-   # src/main/tool_ui.c 
+ifeq ($(ENABLE_LOKI_RECOVERY),true)
+ LOCAL_CFLAGS += -DENABLE_LOKI
+ LOCAL_SRC_FILES += \
+        loki/compact_loki.c 
+ endif
+
+
 
 LOCAL_SRC_FILES := \
     $(libmiui_common_src_files) \
@@ -113,6 +91,11 @@ endif
 ifeq ($(BOARD_HAS_FLIPPED_SCREEN), true)
     LOCAL_CFLAGS += -DBOARD_HAS_FLIPPED_SCREEN
 endif
+
+LOCAL_CFLAGS += -DCONST_MIUI_BUILD="$(MIUI_BUILD)"
+LOCAL_CFLAGS += -DCONST_MIUI_VERSION="$(MIUI_VERSION)"
+LOCAL_CFLAGS += -DCONST_MIUI_NAME="$(MIUI_NAME)"
+
 
 LOCAL_SHARED_LIBRARIES += libc libm libz
 LOCAL_STATIC_LIBRARIES := libft2 libpng \

@@ -1,6 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
- *
+ * 
  * Licensed under the Apache License, Version 2.0 (the "License"); * you may not use this file except in compliance with the License.
  * You may obtain a copy of the License at
  *
@@ -15,11 +15,15 @@
 
 #ifndef RECOVERY_COMMON_H
 #define RECOVERY_COMMON_H
-#include <stdio.h>
 
 #ifdef __cplusplus
 extern "C" {
 #endif
+
+#include <stdio.h>
+#include <fs_mgr.h>
+#include "iniparser/iniparser.h"
+
 
 // Initialize the graphics system.
 
@@ -75,30 +79,7 @@ void ui_reset_progress();
 #define STRINGIFY(x) #x
 #define EXPAND(x) STRINGIFY(x)
 
-typedef struct {
-    const char* mount_point;  // eg. "/cache".  must live in the root directory.
-
-    const char* fs_type;      // "yaffs2" or "ext4" or "vfat"
-
-    const char* device;       // MTD partition name if fs_type == "yaffs"
-                              // block device if fs_type == "ext4" or "vfat"
-
-    const char* device2;      // alternative device to try if fs_type
-                              // == "ext4" or "vfat" and mounting
-                              // 'device' fails
-
-    long long length;         // (ext4 partition only) when
-                              // formatting, size to use for the
-                              // partition.  0 or negative number
-                              // means to format all but the last
-                              // (that much).
-
-    const char* fs_type2;
-
-    const char* fs_options;
-
-    const char* fs_options2;
-} Volume;
+typedef struct fstab_rec Volume;
 
 typedef struct {
     // number of frames in indeterminate progress bar animation
@@ -121,12 +102,14 @@ typedef struct {
 
 // fopen a file, mounting volumes and making parent dirs as necessary.
 FILE* fopen_path(const char *path, const char *mode);
-//get the reboot_main(int argc, char *argv[])
-int reboot_main(int argc, char *argv[]);
 
 
 //Write string to file
 void write_string_to_file(char* filename, const char* string);
+
+//load_miui_settings();
+dictionary * ini_install; // for ini file parser 
+int load_miui_settings(); // loading /sdcard/miui_recovery/settings.ini
 
 #ifdef __cplusplus
 }

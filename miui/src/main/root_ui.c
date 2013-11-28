@@ -46,6 +46,11 @@
 #include "../../../minadbd/adb.h" //for ADB_SIDELOAD_FILENAME 
 #include "../../../sideload.h"
 
+#ifdef ENABLE_LOKI
+#include "../../../loki/compact_loki.h"
+#endif
+
+
 #define ROOT_DEVICE 0x8
 #define DISABLE_OFFICAL_REC 0x9
 #define FREE_SDCARD_SPACE 0xA
@@ -87,6 +92,9 @@ int load_settings()
 			   "\n"
 			   "\n"
 			   "[dev]\n"
+#ifdef ENABLE_LOKI
+                           "loki_support=1\n"
+#endif			   
 			   "signaturecheck=0\n"
 			   "\n\n");
 	   fclose(f);
@@ -402,6 +410,40 @@ static STATUS sigcheck_menu_show(struct _menuUnit* p)
     return MENU_BACK;
 }
 
+#ifdef ENABLE_LOKI 
+static STATUS loki_menu_show(struct _menuUnit* p)
+ int currstatus;
+    if (1==load_settings()) {
+        return MENU_BACK;
+    }
+    
+    currstatus = iniparser_getboolean(ini, "dev:loki_support", -1);
+    char *statusdlg;
+    char *btntext;
+    
+    if (currstatus == 0) {
+        statusdlg = "Loki Support currently disabled.";
+        btntext = "Enable";
+    } else {
+        statusdlg = "Loki support: currently enabled.";
+        btntext = "Disable";
+    }
+    
+    if (RET_YES == miui_confirm(5, p->name, statusdlg, p->icon, btntext, "Cancel")) {
+        if (currstatus == 0) {
+            // enable loki support 
+            iniparser_set(ini, "dev:loki_support", "1");
+        } else if (currstatus == 1) {
+            // disable loki support 
+            iniparser_set(ini, "dev:loki_support", "0");
+        }
+        write_settings();
+    }
+    return MENU_BACK;
+
+}
+
+#endif 
 
 
 struct _menuUnit* ors_ui_init() {
@@ -504,6 +546,15 @@ struct _menuUnit* dev_ui_init() {
 	menuUnit_set_name(tmp, "<~root.sigcheck>");
 	menuUnit_set_show(tmp, &sigcheck_menu_show);
 	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+#ifdef ENABLE_LOKI 
+        //LOKI 
+        tmp = common_ui_init();
+        menuUnit_set_name(tmp, "<~root.loki>");
+        menuUnit_set_show(tmp, &loki_menu_show);
+        assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+#endif
 
 	//set Brightness
 	tmp = brightness_ui_init();

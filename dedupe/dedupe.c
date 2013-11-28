@@ -343,7 +343,6 @@ static int check_file(const char* f) {
 }
 
 int dedupe_main(int argc, char** argv) {
-//int main(int argc, char** argv) {
     if (argc < 3) {
         usage(argv);
         return 1;
@@ -589,7 +588,7 @@ int dedupe_main(int argc, char** argv) {
         // Search for unused files
         int j = 0;
         for (i = 0; i < all_files.size; i++) {
-            int cmp = 0;
+            int cmp;
             while (j < used_files.size &&
                 (cmp = strcmp(used_files.data[j], all_files.data[i])) < 0) {
                 j++;

@@ -3,7 +3,6 @@
 #include <stdlib.h>
 #include "cutils/android_reboot.h"
 #include <unistd.h>
-#include "common.h"
 
 int reboot_main(int argc, char *argv[])
 {

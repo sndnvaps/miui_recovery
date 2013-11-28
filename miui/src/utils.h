@@ -27,15 +27,18 @@ typedef int u32;
 // Common Data Type
 //
 
+#define STRINGIFY(x) #x
+#define EXPAND(x) STRINGIFY(x)
+
 //
 // MIUI Main Configurations
 
-#define MIUI_NAME        "MIUI Rec by  LaoYang"
-//rom_version
-#define MIUI_VERSION     "v3.5.0"
-//rom date
-#define MIUI_BUILD       "2013-11-22"
-#define MIUI_BUILD_CN    "Sat"
+#define MIUI_VERSION     EXPAND(CONST_MIUI_VERSION)
+#define MIUI_NAME        EXPAND(CONST_MIUI_NAME)
+#define MIUI_BUILD       EXPAND(CONST_MIUI_BUILD)
+
+
+#define MIUI_BUILD_CN    "Thus"
 #define MIUI_BUILD_L     "sndnvaps"
 #define MIUI_BUILD_A     "<sndnvaps@gmail.com>"
 #define MIUI_BUILD_URL   "http://www.gaojiquan.com/"

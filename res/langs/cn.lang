@@ -141,16 +141,12 @@ root.free.sd.space=释放sd空间
 
 root.set.backup.format=设置默认的备份格式
 
-root.enabled.md5=MD5检测开启
-root.disabled.md5=MD5检测关闭
 
-root.CDI=开启/关闭检查机型信息
-root.CDI.on=开启
-root.CDI.off=关闭
+root.CDI=Turn on/off check device info
 
-root.md5sum=开启/关闭生成md5sum
-root.md5sum.on=开启
-root.md5sum.off=关闭
+root.md5sum=Turn on/off md5sum generate 
 
-root.sigcheck= Sig check 
-root.dev=开发者选项
+root.sigcheck=Turn on/off signature check
+root.dev=Dev Opts 
+
+root.loki=Turn on/off loki support 

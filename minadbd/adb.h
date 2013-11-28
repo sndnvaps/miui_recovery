@@ -415,6 +415,4 @@ int handle_host_request(char *service, transport_type ttype, char* serial, int r
 
 #define ADB_SIDELOAD_FILENAME "/tmp/update.zip"
 
-//extern char ADB_SIDELOAD_FILENAME[255];
-
 #endif

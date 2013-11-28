@@ -1,17 +1,13 @@
 #!/bin/bash
 #
-# A test suite for applypatch.  Run in a client where you have done
-# envsetup, choosecombo, etc.
-#
-# DO NOT RUN THIS ON A DEVICE YOU CARE ABOUT.  It will mess up your
-# system partition.
-#
+# A test suite for recovery's package signature verifier.  Run in a
+# client where you have done envsetup, lunch, etc.
 #
 # TODO: find some way to get this run regularly along with the rest of
 # the tests.
 
 EMULATOR_PORT=5580
-DATA_DIR=$ANDROID_BUILD_TOP/src/testdata
+DATA_DIR=$ANDROID_BUILD_TOP/bootable/recovery/testdata
 
 WORK_DIR=/data/local/tmp
 
@@ -78,9 +74,9 @@ expect_fail() {
 }
 
 expect_succeed_f4() {
-	testname "$1 (should succeed)"
-	$ADB push $DATA_DIR/$1 $WORK_DIR/package.zip
-	run_command $WORK_DIR/verifyer_test -f4 $WORK_DIR/package.zip || fail
+  testname "$1 (should succeed)"
+  $ADB push $DATA_DIR/$1 $WORK_DIR/package.zip
+  run_command $WORK_DIR/verifier_test -f4 $WORK_DIR/package.zip || fail
 }
 
 expect_fail_f4() {

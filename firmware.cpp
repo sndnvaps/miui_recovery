@@ -102,14 +102,13 @@ int maybe_install_firmware_update(const char *send_intent) {
         BACKGROUND_ICON_FIRMWARE_ERROR, &width, &height, &bpp);
 
     ui_print("Writing %s image...\n", update_type);
-  /*  if (write_update_for_bootloader(
+    if (write_update_for_bootloader(
             update_data, update_length,
             width, height, bpp, busy_image, fail_image)) {
         LOGE("Can't write %s image\n(%s)\n", update_type, strerror(errno));
         format_volume("/cache");  // Attempt to clean cache up, at least.
         return -1;
     }
-    */
 
     free(busy_image);
     free(fail_image);

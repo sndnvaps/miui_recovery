@@ -1,5 +1,6 @@
 /*
  * Copyright (C) 2007 The Android Open Source Project
+ * Copyright (c) 2010, Code Aurora Forum. All rights reserved.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -9,7 +10,9 @@
  *
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
- * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.  * See the License for the specific language governing permissions and * limitations under the License.
+ * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+ * See the License for the specific language governing permissions and
+ * limitations under the License.
  */
 
 #include <ctype.h>
@@ -48,13 +51,13 @@ extern "C" {
 #include "cutils/properties.h"
 #include "cutils/android_reboot.h"
 #include "libcrecovery/common.h"
-#include "yaffs2_static/mkyaffs2image.h"
-#include "yaffs2_static/unyaffs.h"
 #include "flashutils/flashutils.h"
+#include "voldclient/voldclient.h"
 }
 
 #include "nandroid.h"
 #include "root_device.hpp"
+#include "recovery_cmds.h"
 
 extern struct selabel_handle * sehandle = NULL; 
 static const struct option OPTIONS[] = {
@@ -63,14 +66,15 @@ static const struct option OPTIONS[] = {
   { "wipe_data", no_argument, NULL, 'w' },
   { "wipe_cache", no_argument, NULL, 'c' },
   { "show_text", no_argument, NULL, 't' },
+  { "sideload", no_argument, NULL, 'l' },
   { NULL, 0, NULL, 0 },
 };
+
+#define LAST_LOG_FILE "/cache/recovery/last_log"
 
 static const char *COMMAND_FILE = "/cache/recovery/command";
 static const char *INTENT_FILE = "/cache/recovery/intent";
 static const char *LOG_FILE = "/cache/recovery/log";
-static const char *LAST_LOG_FILE = "/cache/recovery/last_log";
-static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
 static const char *CACHE_ROOT = "/cache";
 static const char *SDCARD_ROOT = "/sdcard";
 static const char *TEMPORARY_LOG_FILE = "/tmp/miui_recovery.log";
@@ -151,6 +155,7 @@ fopen_path(const char *path, const char *mode) {
     if (strchr("wa", mode[0])) dirCreateHierarchy(path, 0777, NULL, 1, sehandle);
 
     FILE *fp = fopen(path, mode);
+    if (fp == NULL && path != COMMAND_FILE) LOGE("Can't open %s\n", path);
     return fp;
 }
 
@@ -170,7 +175,9 @@ static void
 get_args(int *argc, char ***argv) {
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
-    get_bootloader_message(&boot);  // this may fail, leaving a zeroed structure
+    if (device_flash_type() == MTD || device_flash_type() == MMC) {
+        get_bootloader_message(&boot);  // this may fail, leaving a zeroed structure
+    }
 
     if (boot.command[0] != 0 && boot.command[0] != 255) {
         LOGI("Boot command: %.*s\n", sizeof(boot.command), boot.command);
@@ -249,7 +256,7 @@ void write_string_to_file(const char* filename, const char* string) {
 }
 
 
-static void
+void
 set_sdcard_update_bootloader_message() {
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
@@ -262,13 +269,15 @@ set_sdcard_update_bootloader_message() {
 static long tmplog_offset = 0;
 
 static void
-copy_log_file(const char* source, const char* destination, int append) {
+copy_log_file(const char* destination, int append) {
     FILE *log = fopen_path(destination, append ? "a" : "w");
     if (log == NULL) {
         LOGE("Can't open %s\n", destination);
     } else {
-        FILE *tmplog = fopen(source, "r");
-        if (tmplog != NULL) {
+        FILE *tmplog = fopen(TEMPORARY_LOG_FILE, "r");
+        if (tmplog == NULL) {
+            LOGE("Can't open %s\n", TEMPORARY_LOG_FILE);
+        } else {
             if (append) {
                 fseek(tmplog, tmplog_offset, SEEK_SET);  // Since last write
             }
@@ -277,7 +286,7 @@ copy_log_file(const char* source, const char* destination, int append) {
             if (append) {
                 tmplog_offset = ftell(tmplog);
             }
-            check_and_fclose(tmplog, source);
+            check_and_fclose(tmplog, TEMPORARY_LOG_FILE);
         }
         check_and_fclose(log, destination);
     }
@@ -326,15 +335,11 @@ finish_recovery(const char *send_intent) {
     }
 
     // Copy logs to cache so the system can find out what happened.
-    copy_log_file(TEMPORARY_LOG_FILE, LOG_FILE, true);
-    copy_log_file(TEMPORARY_LOG_FILE, LAST_LOG_FILE, false);
-    copy_log_file(TEMPORARY_INSTALL_FILE, LAST_INSTALL_FILE, false);
-    chmod(LOG_FILE, 0600);
-    chown(LOG_FILE, 1000, 1000);   // system user
+    copy_log_file(LOG_FILE, true);
+    copy_log_file(LAST_LOG_FILE, false);
     chmod(LAST_LOG_FILE, 0640);
-    chmod(LAST_INSTALL_FILE, 0644);
 
-    // Reset to mormal system boot so recovery won't cycle indefinitely.
+    // Reset to normal system boot so recovery won't cycle indefinitely.
     struct bootloader_message boot;
     memset(&boot, 0, sizeof(boot));
     set_bootloader_message(&boot);
@@ -345,7 +350,6 @@ finish_recovery(const char *send_intent) {
         LOGW("Can't unlink %s\n", COMMAND_FILE);
     }
 
-    ensure_path_unmounted(CACHE_ROOT);
     sync();  // For good measure.
 }
 
@@ -354,8 +358,6 @@ erase_volume(const char *volume) {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_show_indeterminate_progress();
     ui_print("Formatting %s...\n", volume);
-
-    ensure_path_unmounted(volume);
 
     if (strcmp(volume, "/cache") == 0) {
         // Any part of the log we'd copied to cache is now gone.
@@ -372,11 +374,6 @@ static char*
 copy_sideloaded_package(const char* original_path) {
   if (ensure_path_mounted(original_path) != 0) {
     LOGE("Can't mount %s\n", original_path);
-    return NULL;
-  }
-
-  if (ensure_path_mounted(SIDELOAD_TEMP_DIR) != 0) {
-    LOGE("Can't mount %s\n", SIDELOAD_TEMP_DIR);
     return NULL;
   }
  if (ensure_path_mounted(SIDELOAD_TEMP_DIR) != 0) {
@@ -690,37 +687,92 @@ print_property(const char *key, const char *name, void *cookie) {
     printf("%s=%s\n", key, name);
 }
 
-static void setup_adbd() {
-	struct stat st;
-	static char* key_src = (char*)"/data/misc/adb/adb_keys";
-	static char* key_dest = (char*)"/adb_keys";
-	//Mount /data and copy adb_keys to root if it exists
-	miuiIntent_send(INTENT_MOUNT, 1, "/data");
-	if (stat(key_src, &st) == 0) { //key_src exists
-		FILE* file_src = fopen(key_src, "r");
-		  if (file_src == NULL) {
-			  LOGE("Can't open %s\n", key_src);
-		  } else {
-			  FILE* file_dest = fopen(key_dest,"r");
-			  if (file_dest == NULL) {
-				  LOGE("Can't open %s\n", key_dest);
-			  } else {
-				  char buf[4096];
-				  while (fgets(buf, sizeof(buf), file_src))
-					  fputs(buf, file_dest);
-				  check_and_fclose(file_dest,key_dest);
-				  //Disable secure adbd
-				  property_set("ro.adb.secure", "0");
-				  property_set("ro.secure", "0");
-			  }
-			  check_and_fclose(file_src, key_src);
-		  }
-	}
-	miuiIntent_send(INTENT_UNMOUNT, 1, "/data");
-	// Trigger (re)start of adb daemon
-	property_set("service.adb.root", "1");
+static void
+setup_adbd() {
+    struct stat f;
+    static char *key_src = "/data/misc/adb/adb_keys";
+    static char *key_dest = "/adb_keys";
+
+    // Mount /data and copy adb_keys to root if it exists
+    ensure_path_mounted("/data");
+    if (stat(key_src, &f) == 0) {
+        FILE *file_src = fopen(key_src, "r");
+        if (file_src == NULL) {
+            LOGE("Can't open %s\n", key_src);
+        } else {
+            FILE *file_dest = fopen(key_dest, "w");
+            if (file_dest == NULL) {
+                LOGE("Can't open %s\n", key_dest);
+            } else {
+                char buf[4096];
+                while (fgets(buf, sizeof(buf), file_src)) fputs(buf, file_dest);
+                check_and_fclose(file_dest, key_dest);
+
+                // Enable secure adbd
+                property_set("ro.adb.secure", "1");
+            }
+            check_and_fclose(file_src, key_src);
+        }
+    }
+    ignore_data_media_workaround(1);
+    ensure_path_unmounted("/data");
+    ignore_data_media_workaround(0);
+
+    // Trigger (re)start of adb daemon
+    property_set("service.adb.root", "1");
 }
 
+
+
+/ call a clean reboot
+void reboot_main_system(int cmd, int flags, char *arg) {
+   //rite_recovery_version();
+    //rify_root_and_recovery();
+    finish_recovery(NULL); // sync() in here
+    vold_unmount_all();
+    android_reboot(cmd, flags, arg);
+}
+
+
+static int v_changed = 0;
+int volumes_changed() {
+    int ret = v_changed;
+    if (v_changed == 1)
+        v_changed = 0;
+    return ret;
+}
+
+
+static int handle_volume_hotswap(char* label, char* path) {
+    v_changed = 1;
+    return 0;
+}
+
+static int handle_volume_state_changed(char* label, char* path, int state) {
+    int log = -1;
+    if (state == State_Checking || state == State_Mounted || state == State_Idle) {
+        // do not ever log to screen mount/unmount events for sdcards
+        if (strncmp(path, "/storage/sdcard", 15) == 0)
+            log = 0;
+        else log = 1;
+    }
+    else if (state == State_Formatting || state == State_Shared) {
+            log = 1;
+    }
+
+    if (log == 0)
+        LOGI("%s: %s\n", path, volume_state_to_string(state));
+    else if (log == 1)
+        ui_print("%s: %s\n", path, volume_state_to_string(state));
+
+    return 0;
+}
+
+static struct vold_callbacks v_callbacks = {
+    handle_volume_state_changed,
+    handle_volume_hotswap,
+    handle_volume_hotswap
+};
 
 int main(int argc, char **argv) {
 
@@ -729,8 +781,7 @@ int main(int argc, char **argv) {
     umask(0);
 
    time_t start = time(NULL);
-
-    // If these fail, there's not really anywhere to complain...
+       // If these fail, there's not really anywhere to complain...
 #ifndef DEBUG
     unlink(TEMPORARY_LOG_FILE);
 #endif
@@ -751,30 +802,38 @@ int main(int argc, char **argv) {
 		return 0;
 	}
 
-       
-        if (strcmp(basename(argv[0]), "recovery") != 0) {
-		if (strstr(argv[0], "dedupe") != NULL){
-			return dedupe_main(argc,argv);
-		}
-		if (strstr(argv[0], "mkyaffs2image") != NULL) {
-			return mkyaffs2image_main(argc, argv);
-		}
-		if (strstr(argv[0], "unyaffs") != NULL) {
-			return unyaffs_main(argc, argv);
-		}
-		//reboot recovery
-		//reboot bootloader
-		//reboot download
-		//poweroff 
-		if (strstr(argv[0], "reboot") != NULL) {
-			return reboot_main(argc,argv);
-		}
-		if (strstr(argv[0], "poweroff") != NULL) {
-			return reboot_main(argc, argv);
-		}
-		//run busybox command
-		//return busybox_driver(argc, argv); 
-	}
+      char* command = argv[0];
+	  char* stripped = strrchr(argv[0], '/');
+    if (stripped)
+        command = stripped + 1;
+
+    if (strcmp(command, "recovery") != 0)
+    {
+        struct recovery_cmd cmd = get_command(command);
+        if (cmd.name)
+            return cmd.main_func(argc, argv);
+
+#ifdef BOARD_RECOVERY_HANDLES_MOUNT
+        if (!strcmp(command, "mount") && argc == 2)
+        {
+            load_volume_table();
+            return ensure_path_mounted(argv[1]);
+        }
+#endif
+        if (!strcmp(command, "setup_adbd")) {
+            load_volume_table();
+            setup_adbd();
+            return 0;
+        }
+        if (!strcmp(command, "start")) {
+            property_set("ctl.start", argv[1]);
+            return 0;
+        }
+        if (!strcmp(command, "stop")) {
+            property_set("ctl.stop", argv[1]);
+            return 0;
+        }
+   }
 
 	
    
@@ -805,14 +864,12 @@ int main(int argc, char **argv) {
     //process volume tables 
     root_device *load_volume = new(root_device);
     load_volume->process_volumes();
+    vold_client_start(&v_callbacks, 0);
+    vold_set_automount(1);
+    setup_legacy_storage_paths();
     ensure_path_mounted(LAST_LOG_FILE);
-    rotate_last_logs(5);
+    rotate_last_logs(10);
     get_args(&argc, &argv);
-
-    struct bootloader_message boot;
-    memset(&boot, 0, sizeof(boot));
-    set_bootloader_message(&boot);
-
     int previous_runs = 0;
     //const char *send_intent = NULL;
     //const char *update_package = NULL;
@@ -820,7 +877,6 @@ int main(int argc, char **argv) {
     char *send_intent = NULL;
     int wipe_data = 0, wipe_cache = 0;
   //  int sideload = 0;
-   root_device root;
     int arg;
     while ((arg = getopt_long(argc, argv, "", OPTIONS, NULL)) != -1) {
         switch (arg) {
@@ -836,6 +892,18 @@ int main(int argc, char **argv) {
         }
     }
 
+    struct selinux_opt seopts[] = {
+      { SELABEL_OPT_PATH, "/file_contexts" }
+    };
+
+    sehandle = selabel_open(SELABEL_CTX_FILE, seopts, 1);
+
+    if (!sehandle) {
+        fprintf(stderr, "Warning: No file_contexts\n");
+        ui_print("Warning:  No file_contexts\n");
+    }
+
+    LOGI("device_recovery_start()\n");
     device_recovery_start();
 
     printf("Command:");
@@ -913,7 +981,11 @@ int main(int argc, char **argv) {
     finish_recovery(send_intent);
     
     ui_print("Rebooting...\n");
-    android_reboot(ANDROID_RB_RESTART, 0, 0);
+    reboot_main_system(ANDROID_RB_RESTART, 0, 0);
+
     return EXIT_SUCCESS;
 }
 
+int get_allow_toggle_display() {
+    return allow_display_toggle;
+}

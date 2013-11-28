@@ -1,5 +1,5 @@
 /*
- * Copyright (C) 2008 The Android Open Source Project
+ * By Seth Shelnutt
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -14,19 +14,16 @@
  * limitations under the License.
  */
 
-#ifndef _RECOVERY_VERIFIER_H
-#define _RECOVERY_VERIFIER_H
+#define Loki_Image "/tmp/loki_image"
+#define BOOT_PARTITION "/dev/block/platform/msm_sdcc.1/by-name/boot"
+#define RECOVERY_PARTITION "/dev/block/platform/msm_sdcc.1/by-name/recovery"
 
-#include "mincrypt/rsa.h"
+int loki_patch_shellcode(unsigned int addr);
 
-/* Look in the file for a signature footer, and verify that it
- * matches one of the given keys.  Return one of the constants below.
- */
-int verify_file(const char* path, const RSAPublicKey *pKeys, unsigned int numKeys);
+int loki_patch(char *partition, char *partitionPath);
 
-RSAPublicKey* load_keys(const char* filename, int* numKeys);
+int loki_flash(char *partition);
 
-#define VERIFY_SUCCESS        0
-#define VERIFY_FAILURE        1
+int loki_check_partition(char *partition);
 
-#endif  /* _RECOVERY_VERIFIER_H */
+int loki_check();

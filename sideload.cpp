@@ -101,7 +101,9 @@ void *adb_sideload_thread(void* v) {
 }
 
 int start_adb_sideload() {
-    finished = 0;
+#ifdef ENABLE_LOKI
+    int loki_support;
+#endif
     stop_adbd();
     set_usb_driver(1);
 
@@ -135,6 +137,16 @@ int start_adb_sideload() {
     }
 
 */
+#ifdef ENABLE_LOKI
+    if(loki_support_enabled) {
+       ui_print("Checking if loki-fying is needed");
+       int result;
+       if(result = loki_check()) {
+           return result;
+       }
+    }
+#endif
+
     return 0;
 }
 

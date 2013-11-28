@@ -35,12 +35,12 @@ extern "C" {
 #include "mtdutils/mounts.h"
 #include "mtdutils/mtdutils.h"
 #include "miui/src/miui.h"
-#include "iniparser/iniparser.h"
 }
 
 #include "roots.h"
 #include "verifier.h"
-#include "root_device.hpp"
+
+#include "firmware.h"
 
 
 #define ASSUMED_UPDATE_BINARY_NAME  "META-INF/com/google/android/update-binary"
@@ -50,11 +50,41 @@ extern "C" {
 #define UPDATER_API_VERSION 3 // this should equal RECOVERY_API_VERSION , define in Android.mk 
 
 
-
-dictionary * ini_install;
-
-int load_cotsettings()
+int load_miui_settings()
 {
+	struct stat st;
+	char cmd[256];
+
+    miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
+    if (stat("/sdcard/miui_recovery", &st) != 0) {
+    miuiIntent_send(INTENT_SYSTEM, 1, "mkdir -p /sdcard/miui_recovery");
+    }
+
+    if (stat(MIUI_SETTINGS_FILE, &st) != 0) {
+	    printf("Loading default settings.ini file\n");
+
+	   FILE *f = fopen("/sdcard/miui_recovery/settings.ini", "w+");
+	   if (NULL == f) {
+		   printf("Error: Create [%s] failed\n","/sdcard/miui_recovery/settings.ini");
+	   }
+
+	   fprintf(f, "%s", "#settings.ini for miui recovery\n"
+			   "# miui recovery v3.2.0\n"
+			   "# modify by Gaojiquan LaoYang\n"
+			   "[zipflash]\n"
+			   "md5sum=1\n"
+			   "CDI=1\n"
+			   "\n"
+			   "\n"
+			   "[dev]\n"
+#ifdef ENABLE_LOKI
+                           "loki_support=1\n"
+#endif			   
+			   "signaturecheck=0\n"
+			   "\n\n");
+	   fclose(f);
+
+    }
     ini_install = iniparser_load("/sdcard/miui_recovery/settings.ini");
     if (ini_install==NULL)
         return 1;
@@ -117,7 +147,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
 
  
     int currstatus;
-    if (1==load_cotsettings()) {
+    if (1==load_miui_settings()) {
         return INSTALL_CORRUPT;
     }
     
@@ -266,87 +296,6 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     return INSTALL_SUCCESS;
 }
 
-// Reads a file containing one or more public keys as produced by
-// DumpPublicKey:  this is an RSAPublicKey struct as it would appear
-// as a C source literal, eg:
-//
-//  "{64,0xc926ad21,{1795090719,...,-695002876},{-857949815,...,1175080310}}"
-//
-// For key versions newer than the original 2048-bit e=3  keys
-// Now is support 2048-bit e = 65537
-// Supported by Android, the string is preceded by version 
-// identifier, eg:
-//  "v2 {64,0xc926ad21,{1795090719,...,-695002876},{-857949815,...,1175080310}}" 
-//
-//
-// (Note that the braces and commas in this example are actual
-// characters the parser expects to find in the file; the ellipses
-// indicate more numbers omitted from this example.)
-//
-// The file may contain multiple keys in this format, separated by
-// commas.  The last key must not be followed by a comma.
-//
-// Returns NULL if the file failed to parse, or if it contain zero keys.
-static RSAPublicKey*
-load_keys(const char* filename, int* numKeys) {
-    RSAPublicKey* out = NULL;
-    *numKeys = 0;
-
-    FILE* f = fopen(filename, "r");
-    if (f == NULL) {
-        LOGE("opening %s: %s\n", filename, strerror(errno));
-        goto exit;
-    }
-   {
-    int i;
-    bool done = false;
-    while (!done) {
-        ++*numKeys;
-        out = (RSAPublicKey*)realloc(out, *numKeys * sizeof(RSAPublicKey));
-        RSAPublicKey* key = out + (*numKeys - 1);
-        if (fscanf(f, " { %i , 0x%x , { %u",
-                   &(key->len), &(key->n0inv), &(key->n[0])) != 3) {
-            goto exit;
-        }
-        if (key->len != RSANUMWORDS) {
-            LOGE("key length (%d) does not match expected size\n", key->len);
-            goto exit;
-        }
-        for (i = 1; i < key->len; ++i) {
-            if (fscanf(f, " , %u", &(key->n[i])) != 1) goto exit;
-        }
-        if (fscanf(f, " } , { %u", &(key->rr[0])) != 1) goto exit;
-        for (i = 1; i < key->len; ++i) {
-            if (fscanf(f, " , %u", &(key->rr[i])) != 1) goto exit;
-        }
-        fscanf(f, " } } ");
-
-        // if the line ends in a comma, this file has more keys.
-        switch (fgetc(f)) {
-            case ',':
-                // more keys to come.
-                break;
-
-            case EOF:
-                done = true;
-                break;
-
-            default:
-                LOGE("unexpected character between keys\n");
-                goto exit;
-        }
-    }
-   }
-
-    fclose(f);
-    return out;
-
-exit:
-    if (f) fclose(f);
-    free(out);
-    *numKeys = 0;
-    return NULL;
-}
 
 static int really_install_package(const char *path, int* wipe_cache)
 {
