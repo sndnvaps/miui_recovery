@@ -437,6 +437,86 @@ int format_volume(const char* volume) {
     return format_unknown_device(v->blk_device, volume, v->fs_type);
 }
 
+int format_unknown_device(const char *device, const char* path, const char *fs_type)
+{
+    LOGI("Formatting unknown device.\n");
+
+    if (fs_type != NULL && get_flash_type(fs_type) != UNSUPPORTED)
+        return erase_raw_partition(fs_type, device);
+
+    // if this is SDEXT:, don't worry about it if it does not exist.
+    if (0 == strcmp(path, "/sd-ext"))
+    {
+        struct stat st;
+        Volume *vol = volume_for_path("/sd-ext");
+        if (vol == NULL || 0 != stat(vol->blk_device, &st))
+        {
+            LOGI("No app2sd partition found. Skipping format of /sd-ext.\n");
+            return 0;
+        }
+    }
+
+    if (NULL != fs_type) {
+        if (strcmp("ext3", fs_type) == 0) {
+            LOGI("Formatting ext3 device.\n");
+            if (0 != ensure_path_unmounted(path)) {
+                LOGE("Error while unmounting %s.\n", path);
+                return -12;
+            }
+            return format_ext3_device(device);
+        }
+
+        if (strcmp("ext2", fs_type) == 0) {
+            LOGI("Formatting ext2 device.\n");
+            if (0 != ensure_path_unmounted(path)) {
+                LOGE("Error while unmounting %s.\n", path);
+                return -12;
+            }
+            return format_ext2_device(device);
+        }
+    }
+
+    if (0 != ensure_path_mounted(path))
+    {
+        ui_print("Error mounting %s!\n", path);
+        ui_print("Skipping format...\n");
+        return 0;
+    }
+
+    static char tmp[PATH_MAX];
+    if (strcmp(path, "/data") == 0) {
+        sprintf(tmp, "cd /data ; for f in $(ls -a | grep -v ^media$); do rm -rf $f; done");
+        __system(tmp);
+        // if the /data/media sdcard has already been migrated for android 4.2,
+        // prevent the migration from happening again by writing the .layout_version
+        struct stat st;
+        if (0 == lstat("/data/media/0", &st)) {
+            char* layout_version = "2";
+            FILE* f = fopen("/data/.layout_version", "wb");
+            if (NULL != f) {
+                fwrite(layout_version, 1, 2, f);
+                fclose(f);
+            }
+            else {
+                LOGI("error opening /data/.layout_version for write.\n");
+            }
+        }
+        else {
+            LOGI("/data/media/0 not found. migration may occur.\n");
+        }
+    }
+    else {
+        sprintf(tmp, "rm -rf %s/*", path);
+        __system(tmp);
+        sprintf(tmp, "rm -rf %s/.*", path);
+        __system(tmp);
+    }
+
+    ensure_path_unmounted(path);
+    return 0;
+}
+
+
 void ignore_data_media_workaround(int ignore) {
   ignore_data_media = ignore;
 }

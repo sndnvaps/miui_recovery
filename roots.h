@@ -42,6 +42,9 @@ int ensure_path_unmounted(const char* path);
 // it is mounted.
 int format_volume(const char* volume);
 
+// Format the unknown device 
+int format_unknown_device(const char *device, const char* path, const char *fs_type);
+
 char* get_primary_storage_path();
 char** get_extra_storage_paths();
 char* get_android_secure_path();
