@@ -64,6 +64,10 @@ void ui_reset_progress();
 #define LOGW(...) fprintf(stdout, "W:" __VA_ARGS__)
 #define LOGI(...) fprintf(stdout, "I:" __VA_ARGS__)
 
+#define LOGERR(...) ui_print("E:" __VA_ARGS__)
+#define LOGINFO(...) fprintf(stdout, "I:" __VA_ARGS__)
+
+
 #if 0
 #define LOGV(...) fprintf(stdout, "V:" __VA_ARGS__)
 #define LOGD(...) fprintf(stdout, "D:" __VA_ARGS__)

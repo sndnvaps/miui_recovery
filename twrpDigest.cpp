@@ -1,3 +1,21 @@
+/*
+	Copyright 2012 bigbiff/Dees_Troy TeamWin
+	This file is part of TWRP/TeamWin Recovery Project.
+
+	TWRP is free software: you can redistribute it and/or modify
+	it under the terms of the GNU General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	(at your option) any later version.
+
+	TWRP is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+	GNU General Public License for more details.
+
+	You should have received a copy of the GNU General Public License
+	along with TWRP.  If not, see <http://www.gnu.org/licenses/>.
+*/
+
 #include <iostream>
 #include <fstream>
 #include <iomanip>
@@ -19,17 +37,22 @@
 #include <fcntl.h>
 
 
-#include "miui_func.hpp"
+extern "C" {
+	#include "digest/md5.h"
+	#include "libcrecovery/common.h"
+}
+
+#include "twrpDigest.hpp"
 #include "utils_func.hpp"
 #include "common.h"
 
 using namespace std;
 
-void miui_func::setfn(string fn) {
+void twrpDigest::setfn(string fn) {
 	md5fn = fn;
 }
 
-int miui_func::computeMD5(void) {
+int twrpDigest::computeMD5(void) {
 	string line;
 	struct MD5Context md5c;
 	FILE *file;
@@ -46,7 +69,7 @@ int miui_func::computeMD5(void) {
 	return 0;
 }
 
-int miui_func::write_md5digest(void) {
+int twrpDigest::write_md5digest(void) {
 	int i;
 	string md5string, md5file;
 	char hex[3];
@@ -63,14 +86,14 @@ int miui_func::write_md5digest(void) {
 	return 0;
 }
 
-int miui_func::read_md5digest(void) {
+int twrpDigest::read_md5digest(void) {
 	string md5file = md5fn + ".md5";
 	if (utils::read_file(md5file, line) != 0) 
 		return -1;
 	return 0;
 }
 
-int miui_func::verify_md5digest(void) {
+int twrpDigest::verify_md5digest(void) {
 	string buf;
 	char hex[3];
 	int i;

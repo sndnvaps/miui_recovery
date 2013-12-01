@@ -28,19 +28,10 @@ class root_device {
              //remove supersu functions 
            int remove_supersu();
 
-              //signature_check function
-              //int signature_check(char* cmd);
-             //int check_sig(); // return 0, or 1 
-
             //run ors in sdcard | external_sd 
             int check_for_script_file(const char* ors_boot_script);
             int run_ors_script(const char* ors_script);
 
-            //return true if the path exists
-	    static bool Path_Exists(string path);
-            
-	    //execute a command and return teh result as a string by reference
-	    static int Exec_Cmd(string cmd, string &result);
 
         private:
             //write fstab info to /etc/fstab

@@ -14,12 +14,14 @@ LOCAL_SRC_FILES := \
 	verifier.cpp \
 	root_device.cpp \
 	reboot.cpp \
-	miui_func.cpp \
+	twrpDigest.cpp \
 	utils_func.cpp \
 	recovery.cpp \
         sideload.cpp 
         	
-
+LOCAL_SRC_FILES += \
+		   tarWrite.c \
+		   twrpTar.cpp 
 
 
 LOCAL_MODULE := recovery

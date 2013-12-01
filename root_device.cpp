@@ -562,31 +562,7 @@ int root_device::run_ors_script(const char* ors_script) {
 }
 //end of open recovery script file code
 //
-bool root_device::Path_Exists(string path) {
-	struct stat st;
-	if (stat(path.c_str(), &st) != 0) {
-		return false;
-	}
-	return true;
-}
 
-int root_device::Exec_Cmd(string path, string &result) {
-	FILE* exec;
-	char buffer[130];
-	int ret = 0;
-	exec = __popen(path.c_str(), "r");
-	if (!exec) return -1;
-	while (!feof(exec)) {
-		memset(&buffer, 0, sizeof(buffer));
-		if (fgets(buffer, 128, exec) != NULL) {
-			buffer[128] = '\n';
-			buffer[129] = '\0';
-			result += buffer;
-		}
-	}
-	ret = __pclose(exec);
-	return ret;
-}
 
 
 void root_device::write_fstab_root(char *path, FILE *file)

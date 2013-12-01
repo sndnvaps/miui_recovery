@@ -41,7 +41,6 @@ extern "C" {
 #include <sys/vfs.h>
 #include "nandroid.h"
 
-#include "miui_func.hpp"
 #include "utils_func.hpp"
 
 

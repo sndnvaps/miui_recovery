@@ -18,18 +18,14 @@
 	along with TWRP.  If not, see <http://www.gnu.org/licenses/>.
 */
 
-#ifndef _MIUI_FUNC_HPP
-#define _MIUI_FUNC_HPP
 
 extern "C" {
 #include "digest/md5.h"
 }
-#include <string>
-#include <vector>
 
 using namespace std;
 
-class miui_func {
+class twrpDigest {
 	public:
 		int read_md5digest(void);
 
@@ -46,7 +42,6 @@ class miui_func {
 		unsigned char md5sum[MD5LENGTH];
 };
 
-#endif // _MIUI_FUNC_HPP
 
 
 
