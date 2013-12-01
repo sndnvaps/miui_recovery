@@ -66,5 +66,19 @@ Releases:
 BOARD_HAS_FLIPPED_SCREEN := true
 ```
 
+#settings.ini 例子
+```
+ #/sdcard/miui_recovery/settings.ini
+ # miui recovery settings.ini file
+ # version 3.2.0
+[zipflash]
+CDI=0
+sigcheck=0
+md5sum=1
+
+[dev]
+brightness=0
+
+```
 
 
