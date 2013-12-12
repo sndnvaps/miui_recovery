@@ -111,6 +111,11 @@ void write_string_to_file(char* filename, const char* string);
 dictionary * ini_install; // for ini file parser 
 int load_miui_settings(); // loading /sdcard/miui_recovery/settings.ini
 
+#ifdef ENABLE_LOKI 
+int loki_check();
+#endif 
+
+
 #ifdef __cplusplus
 }
 #endif

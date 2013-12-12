@@ -377,6 +377,27 @@ install_package(const char* path, int* wipe_cache, const char* install_file)
         fputc('\n', install_log);
         fclose(install_log);
     }
+
+#ifdef ENABLE_LOKI
+
+    int loki_status;
+    if ( 1==load_miui_settings()) {
+	    return INSTALL_CORRUPT;
+    }
+    loki_status = iniparser_getboolean(ini_install, "dev:loki_support ", -1);
+    iniparser_freedict(ini_install);
+
+
+    if(loki_status) {
+       ui_print("Checking if loki-fying is needed");
+       int result;
+       result = loki_check();
+       if (result != INSTALL_SUCCESS) {
+           return result;
+       }
+    }
+#endif
+
     return result;
 }
 

@@ -53,7 +53,9 @@ libmiui_common_src_files := \
 ifeq ($(ENABLE_LOKI_RECOVERY),true)
  LOCAL_CFLAGS += -DENABLE_LOKI
  LOCAL_SRC_FILES += \
-        loki/compact_loki.c 
+        loki/loki_flash.c \
+	loki/loki_patch.c \
+	loki/loki_recovery.c 
  endif
 
 

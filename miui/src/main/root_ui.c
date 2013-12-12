@@ -46,10 +46,6 @@
 #include "../../../minadbd/adb.h" //for ADB_SIDELOAD_FILENAME 
 #include "../../../sideload.h"
 
-#ifdef ENABLE_LOKI
-#include "../../../loki/compact_loki.h"
-#endif
-
 
 #define ROOT_DEVICE 0x8
 #define DISABLE_OFFICAL_REC 0x9
