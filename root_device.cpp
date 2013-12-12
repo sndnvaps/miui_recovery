@@ -659,7 +659,7 @@ int root_device::bml_check_volume(const char *path) {
     
     ui_print("%s may be rfs. Checking...\n", path);
     char tmp[PATH_MAX];
-    sprintf(tmp, "mount -t rfs %s %s", vol->blk_device, path);
+    sprintf(tmp, "mount -t rfs %s %s", vol->device, path);
     int ret = __system(tmp);
     printf("%d\n", ret);
     return ret == 0 ? 1 : 0;
@@ -716,7 +716,7 @@ void root_device::change_sdcard_ext_sd_soft_link() {
 	int ret = 0;
 	bool sdcard = false;
 	bool ext_sd = false;
-	char cmd[256] = '\0';
+	char cmd[256] = NULL;
 	//mount '/sdcard' first
 	if ( 0 ==  ensure_path_mounted("/sdcard")) {
 		sdcard = true;  //we can mout '/sdcard'
