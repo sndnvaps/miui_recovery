@@ -79,8 +79,6 @@ LOCAL_C_INCLUDES += bionic \
 		    external/libpng
 LOCAL_CFLAGS += -DHAVE_SELINUX
 LOCAL_STATIC_LIBRARIES += libminzip libunz libmincrypt \
-			  libmkyaffs2image_static \
-			  libunyaffs_static \
 			  libdedupe libselinux \
 			  libedify libcrecovery \
 			  libcrypto_static  \
@@ -112,7 +110,7 @@ LOCAL_C_INCLUDES += system/extras/ext4_utils
 
 include $(BUILD_EXECUTABLE)
 
-RECOVERY_LINKS := edify  flash_image dump_image mkyaffs2image unyaffs erase_image nandroid reboot  dedupe minizip 
+RECOVERY_LINKS := edify  flash_image dump_image erase_image nandroid reboot  dedupe minizip 
 
 # nc is provided by external/netcat
 RECOVERY_SYMLINKS := $(addprefix $(TARGET_RECOVERY_ROOT_OUT)/sbin/,$(RECOVERY_LINKS))
@@ -189,8 +187,6 @@ include $(commands_recovery_local_path)/applypatch/Android.mk
 include $(commands_recovery_local_path)/dedupe/Android.mk
 #add some shell script
 include $(commands_recovery_local_path)/utilities/Android.mk
-#add yaffs2_static
-include $(commands_recovery_local_path)/yaffs2_static/Android.mk
 #add digest
 include $(commands_recovery_local_path)/digest/Android.mk
 #add device conf

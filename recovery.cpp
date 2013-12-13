@@ -48,8 +48,6 @@ extern "C" {
 #include "cutils/properties.h"
 #include "cutils/android_reboot.h"
 #include "libcrecovery/common.h"
-#include "yaffs2_static/mkyaffs2image.h"
-#include "yaffs2_static/unyaffs.h"
 #include "flashutils/flashutils.h"
 }
 
@@ -755,12 +753,6 @@ int main(int argc, char **argv) {
         if (strcmp(basename(argv[0]), "recovery") != 0) {
 		if (strstr(argv[0], "dedupe") != NULL){
 			return dedupe_main(argc,argv);
-		}
-		if (strstr(argv[0], "mkyaffs2image") != NULL) {
-			return mkyaffs2image_main(argc, argv);
-		}
-		if (strstr(argv[0], "unyaffs") != NULL) {
-			return unyaffs_main(argc, argv);
 		}
 		//reboot recovery
 		//reboot bootloader
