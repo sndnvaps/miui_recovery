@@ -716,7 +716,7 @@ void root_device::change_sdcard_ext_sd_soft_link() {
 	int ret = 0;
 	bool sdcard = false;
 	bool ext_sd = false;
-	char cmd[256] = NULL;
+	char cmd[256];
 	//mount '/sdcard' first
 	if ( 0 ==  ensure_path_mounted("/sdcard")) {
 		sdcard = true;  //we can mout '/sdcard'
