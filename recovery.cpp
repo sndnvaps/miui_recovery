@@ -78,7 +78,6 @@ static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
 
 
-
 /*
  * The recovery tool communicates with the main system through /cache files.
  *   /cache/recovery/command - INPUT - command line for tool, one arg per line
@@ -655,7 +654,7 @@ static intentResult* intent_backup_format(int argc, char *argv[]) {
 		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"dup");
 		printf("Set backup format to dup\n");
 	} else if (strncmp(argv[0], "tar",3) == 0) {
-		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
+         	write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
 		printf("Set backup format to tar\n");
 	} else if (strncmp(argv[0], "tgz",3) == 0) {
 		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tgz");
@@ -693,8 +692,8 @@ print_property(const char *key, const char *name, void *cookie) {
 
 static void setup_adbd() {
 	struct stat st;
-	static char* key_src = "/data/misc/adb/adb_keys";
-	static char* key_dest = "/adb_keys";
+	static char* key_src = (char*)"/data/misc/adb/adb_keys";
+	static char* key_dest = (char*)"/adb_keys";
 	//Mount /data and copy adb_keys to root if it exists
 	miuiIntent_send(INTENT_MOUNT, 1, "/data");
 	if (stat(key_src, &st) == 0) { //key_src exists
@@ -723,10 +722,30 @@ static void setup_adbd() {
 }
 
 
-
 int main(int argc, char **argv) {
 
-        //for adb sideload 
+    // Recovery needs to install world-readable files, so clear umask
+    // set by init
+    umask(0);
+
+   time_t start = time(NULL);
+
+    // If these fail, there's not really anywhere to complain...
+#ifndef DEBUG
+    unlink(TEMPORARY_LOG_FILE);
+#endif
+
+    freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
+    freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+
+ // If this binary is started with the single argument "--adbd",
+    // instead of being the normal recovery binary, it turns into kind
+    // of a stripped-down version of adbd that only supports the
+    // 'sideload' command.  Note this must be a real argument, not
+    // anything in the command file or bootloader control block; the
+    // only way recovery should be run with this argument is when it
+    // starts a copy of itself from the apply_from_adb() function.
+ 
 	if (argc == 2 && strcmp(argv[1], "--adbd") == 0) {
 		adb_main();
 		return 0;
@@ -758,19 +777,11 @@ int main(int argc, char **argv) {
 	}
 
 	
-    time_t start = time(NULL);
-
-    // If these fail, there's not really anywhere to complain...
-#ifndef DEBUG
-    unlink(TEMPORARY_LOG_FILE);
-#endif
-
-    freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
-    freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+   
     printf("Starting recovery on %s", ctime(&start));
 
     //miuiIntent init
-    miuiIntent_init(10);
+    miuiIntent_init(20);
     miuiIntent_register(INTENT_MOUNT, &intent_mount);
     miuiIntent_register(INTENT_ISMOUNT, &intent_ismount);
     miuiIntent_register(INTENT_UNMOUNT, &intent_unmount);
@@ -882,10 +893,10 @@ int main(int argc, char **argv) {
 	//we are starting up in user initiated recovery here
 	//let's set up some defaut options;
 	ui_set_background(BACKGROUND_ICON_INSTALLING);
-	if( 0 == root.check_for_script_file("/cache/recovery/openrecoveryscript")) {
+	if( 0 == load_volume->check_for_script_file("/cache/recovery/openrecoveryscript")) {
 		LOGI("Runing openrecoveryscript...\n");
 		int ret;
-		if (0 == (ret = root.run_ors_script("/tmp/openrecoveryscript"))) {
+		if (0 == (ret = load_volume->run_ors_script("/tmp/openrecoveryscript"))) {
 			status = INSTALL_SUCCESS;
 			//ui_set_show_text(0);
 		} else {
@@ -903,6 +914,7 @@ int main(int argc, char **argv) {
     device_main_ui_release();
     // Otherwise, get ready to boot the main system...
     finish_recovery(send_intent);
+    
     ui_print("Rebooting...\n");
     android_reboot(ANDROID_RB_RESTART, 0, 0);
     return EXIT_SUCCESS;

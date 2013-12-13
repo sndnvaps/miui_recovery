@@ -22,6 +22,7 @@
 #ifdef __cplusplus
 extern "C" {
 #endif
+//extern bool check_device_info_enabled;
 
 enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT };
 // Install the package specified by root_path.  If INSTALL_SUCCESS is
@@ -29,6 +30,7 @@ enum { INSTALL_SUCCESS, INSTALL_ERROR, INSTALL_CORRUPT };
 // cache partition.
 int install_package(const char *root_path, int* wipe_cache,
                     const char* install_file);
+
 
 #ifdef __cplusplus
 }

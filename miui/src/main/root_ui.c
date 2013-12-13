@@ -38,6 +38,7 @@
 #include "../miui.h"
 #include "../utils.h" 
 #include "../../../miui_intent.h"
+#include "../../../iniparser/iniparser.h" // for iniparser 
 
 #include "../libs/miui_screen.h"
 #include "../libs/miui_libs.h"
@@ -48,15 +49,66 @@
 #define ROOT_DEVICE 0x8
 #define DISABLE_OFFICAL_REC 0x9
 #define FREE_SDCARD_SPACE 0xA
+
+
 //INTENT_RUN_ORS ,1, filename
 //
 #define AUTHOR_INFO "/tmp/author_info.log"
 
-//on || off
-//default on
-#define MD5_STATE "/sdcard/miui_recovery/backup/.md5_state"
 
-static struct _menuUnit *md5_node = NULL;
+#define MIUI_SETTINGS_FILE "/sdcard/miui_recovery/settings.ini"
+
+dictionary * ini;
+
+int load_settings()
+{
+	struct stat st;
+	char cmd[256];
+
+    miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
+    if (stat("/sdcard/miui_recovery", &st) != 0) {
+    miuiIntent_send(INTENT_SYSTEM, 1, "mkdir -p /sdcard/miui_recovery");
+    }
+
+    if (stat(MIUI_SETTINGS_FILE, &st) != 0) {
+	    printf("Loading default settings.ini file\n");
+
+	   FILE *f = fopen(MIUI_SETTINGS_FILE, "w+");
+	   if (NULL == f) {
+		   printf("Error: Create [%s] failed\n", MIUI_SETTINGS_FILE);
+	   }
+
+	   fprintf(f, "%s", "#settings.ini for miui recovery\n"
+			   "# miui recovery v3.2.0\n"
+			   "# modify by Gaojiquan LaoYang\n"
+			   "[zipflash]\n"
+			   "md5sum=1\n"
+			   "CDI=1\n"
+			   "\n"
+			   "\n"
+			   "[dev]\n"
+			   "signaturecheck=0\n"
+			   "\n\n");
+	   fclose(f);
+
+    }
+
+    ini = iniparser_load(MIUI_SETTINGS_FILE);
+    if (ini==NULL)
+        return 1;
+    
+    return 0;
+}
+
+void write_settings()
+{
+    char *ini_name;
+    ini_name = "/sdcard/miui_recovery/settings.ini";
+    iniparser_dump_ini(ini, ini_name);
+    iniparser_freedict(ini);
+}
+
+
 
 static STATUS battary_menu_show(struct _menuUnit* p)
 {
@@ -177,7 +229,7 @@ static STATUS brightness_menu_show(struct _menuUnit* p) {
 //callback function, success return 0, non-zero fail
  int ors_file_run(char *file_name, int file_len, void* data) {
 	 return_val_if_fail(file_name != NULL, RET_FAIL);
-	 return_val_if_fail(strlen(file_name) <= file_len, RET_INVALID_ARG);
+	 return_val_if_fail((int)strlen(file_name) <= file_len, RET_INVALID_ARG);
 	 return_val_if_fail(data != NULL, RET_FAIL);
 	 struct _menuUnit* p = (pmenuUnit)data;
 	  if(RET_YES == miui_confirm(3, p->name, p->desc, p->icon)) {
@@ -254,86 +306,106 @@ static STATUS sideload_menu_show(struct _menuUnit *p) {
 }
 
 
+//skip CDI 
+//skip check device info 
+//on | off 
 
-
-/*
-//refresh_md5_check_state();
-int is_md5_enabled() {
-	struct stat st;
-	char fmt[5];
-	miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
-//	if (stat(MD5_STATE, &st) == 0) {
-        FILE *md5_file = fopen(MD5_STATE, "r");
-        if (NULL == md5_file) { //当文件不存在的时候，默认为开启md5检测
-	return 1;
+static STATUS skip_CDI_menu_show(struct _menuUnit* p) {
+	int currstatus;
+	if (1 == load_settings()) {
+		return MENU_BACK;
 	}
-        fread(fmt, 1, sizeof(fmt), md5_file);
-        fclose(md5_file);
-        
-        fmt[3] = NULL;
-       if (0 == strcmp(fmt, "on"))
-              return 1; //开启md5检测
-       return 0; //关闭md5检测
-}
-
-static STATUS enable_or_disable_md5_check(struct _menuUnit* p) {
-	if (RET_YES == miui_confirm(3, p->name, p->desc, p->icon)) {
-		miui_busy_process();
-		if (is_md5_enabled()) {
-			menuUnit_set_name(md5_node, "<~root.disabled.md5>");
-			printf("set md5 check off\n");
-			miui_writetofs(MD5_STATE, "off");
-
-		} else {
-			menuUnit_set_name(md5_node, "<~root.enabled.md5>");
-			printf("set md5 check on\n");
-			miui_writetofs(MD5_STATE, "on");
-		}
-	}
-
-   return MENU_BACK;
-}
-
-static STATUS tool_menu_show(struct _menuUnit* p) {
-	if (is_md5_enabled()) { //当为1的时候，表示已经打开md5检测，这个里就需要关闭md5选项
-		menuUnit_set_name(md5_node, "<~root.disabled.md5>");
-		menuUnit_set_icon(md5_node, "@alert");
+	currstatus = iniparser_getboolean(ini, "zipflash:CDI", -1);
+	char *statusdlg;
+	char *btntext;
+	if (currstatus == 0) {
+		statusdlg = "Check device info is enabled.";
+		btntext = "Disable";
 	} else {
-		menuUnit_set_name(md5_node, "<~root.enabled.md5>");
-		menuUnit_set_icon(md5_node, "@alert");
+		statusdlg = "Check device info is Disable.";
+		btntext = "Enable";
 	}
-	 //show menu
-    return_val_if_fail(p != NULL, RET_FAIL);
-    int n = p->get_child_count(p);
-    return_val_if_fail(n > 0, RET_FAIL);
-    int selindex = 0;
-    return_val_if_fail(n >= 1, RET_FAIL);
-    return_val_if_fail(n < ITEM_COUNT, RET_FAIL);
-    struct _menuUnit *temp = p->child;
-    return_val_if_fail(temp != NULL, RET_FAIL);
-    char **menu_item = malloc(n * sizeof(char *));
-    assert_if_fail(menu_item != NULL);
-    char **icon_item=malloc(n * sizeof(char *));
-    assert_if_fail(icon_item != NULL);
-    char **title_item= malloc(n * sizeof(char *));
-    assert_if_fail(title_item != NULL);
-    int i = 0;
-    for (i = 0; i < n; i++)
-    {
-        menu_item[i] = temp->name;
-        title_item[i] = temp->title_name;
-        icon_item[i] = temp->icon;
-        temp = temp->nextSilbing;
-    }
-    selindex = miui_menubox(p->name, menu_item, n);
-    p->result = selindex;
-    if (menu_item != NULL) free(menu_item);
-    if (title_item != NULL) free(title_item);
-    if (icon_item != NULL) free(icon_item);
-    return p->result;
+
+        if (RET_YES == miui_confirm(5, p->name, statusdlg, p->icon, btntext, "Cancel")) {
+        if (currstatus == 0) {
+		//disable check device info 
+		iniparser_set(ini, "zipflash:CDI", "1");
+	} else if (currstatus == 1) {
+		//enable check device info
+		iniparser_set(ini, "zipflash:CDI", "0");
+	}
+
+	write_settings();
+	}
+
+	return MENU_BACK;
 }
 
-*/
+
+static STATUS set_md5sum_state(struct _menuUnit* p) {
+
+	int currstatus;
+	if (1 == load_settings()) {
+		return MENU_BACK;
+	}
+	currstatus = iniparser_getboolean(ini, "zipflash:md5sum", -1);
+	char *statusdlg;
+	char *btntext;
+
+	if (currstatus == 0) {
+		statusdlg = "Generate md5sum are currently disabled.";
+		btntext = "Enable";
+	} else {
+		statusdlg = "Generate md5sum are currently enabled.";
+		btntext = "Disable";
+	}
+
+if (RET_YES == miui_confirm(5, p->name, statusdlg, p->icon, btntext, "Cancel")) {
+        if (currstatus == 0) {
+            // enable md5sum
+            iniparser_set(ini, "zipflash:md5sum", "1");
+        } else if (currstatus == 1) {
+            // disable md5sum
+            iniparser_set(ini, "zipflash:md5sum", "0");
+        }
+        write_settings();
+    }
+    return MENU_BACK;
+}
+
+static STATUS sigcheck_menu_show(struct _menuUnit* p)
+{
+    int currstatus;
+    if (1==load_settings()) {
+        return MENU_BACK;
+    }
+    
+    currstatus = iniparser_getboolean(ini, "dev:signaturecheck", -1);
+    char *statusdlg;
+    char *btntext;
+    
+    if (currstatus == 0) {
+        statusdlg = "Signature checks are currently disabled.";
+        btntext = "Enable";
+    } else {
+        statusdlg = "Signature checks are currently enabled.";
+        btntext = "Disable";
+    }
+    
+    if (RET_YES == miui_confirm(5, p->name, statusdlg, p->icon, btntext, "Cancel")) {
+        if (currstatus == 0) {
+            // enable ors wipe prompt
+            iniparser_set(ini, "dev:signaturecheck", "1");
+        } else if (currstatus == 1) {
+            // disable ors wipe prompt
+            iniparser_set(ini, "dev:signaturecheck", "0");
+        }
+        write_settings();
+    }
+    return MENU_BACK;
+}
+
+
 
 struct _menuUnit* ors_ui_init() {
 	struct _menuUnit* p = common_ui_init();
@@ -359,6 +431,8 @@ struct _menuUnit* ors_ui_init() {
 
 	return p;
 }
+
+
 
 struct _menuUnit* brightness_ui_init() {
 	struct _menuUnit* p = common_ui_init();
@@ -408,6 +482,44 @@ struct _menuUnit* brightness_ui_init() {
 	return p;
 }
 
+struct _menuUnit* dev_ui_init() {
+	struct _menuUnit *p = common_ui_init();
+	return_null_if_fail(p != NULL);
+	menuUnit_set_name(p, "<~root.dev>");
+	menuUnit_set_title(p, "dev opts");
+	menuUnit_set_icon(p, "@root");
+	assert_if_fail(menuNode_init(p) != NULL);
+
+	// skip check device info (SKIP_CDI) 
+	struct _menuUnit *tmp = common_ui_init();
+	menuUnit_set_name(tmp, "<~root.CDI>");
+	menuUnit_set_show(tmp, &skip_CDI_menu_show);
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+        // generate md5sum 
+	tmp = common_ui_init();
+	menuUnit_set_name(tmp, "<~root.md5sum>");
+	menuUnit_set_show(tmp, &set_md5sum_state);
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+	//sigcheck 
+	tmp = common_ui_init();
+	menuUnit_set_name(tmp, "<~root.sigcheck>");
+	menuUnit_set_show(tmp, &sigcheck_menu_show);
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+	//set Brightness
+	tmp = brightness_ui_init();
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+           
+	//ORS function 
+	tmp = ors_ui_init();
+	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
+
+	return p;
+}
+
+
 struct _menuUnit* root_ui_init() {
 
 	struct _menuUnit *p = common_ui_init();
@@ -415,12 +527,8 @@ struct _menuUnit* root_ui_init() {
         menuUnit_set_name(p, "<~root.name>");
 	menuUnit_set_title(p, "<~root.title>");
 	menuUnit_set_icon(p, "@root");
-	/*
-//for md5 check
-	menuUnit_set_show(p, &tool_menu_show);
+	
 
-	assert_if_fail(menuNode_init(p) != NULL);
-*/
 	//show info of the author 
 	struct _menuUnit *tmp = common_ui_init();
 	return_null_if_fail(tmp != NULL);
@@ -429,20 +537,10 @@ struct _menuUnit* root_ui_init() {
         menuUnit_set_show(tmp, &about_author_menu_show);
 	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
 
-/*
-	//for md5 check
-	tmp = common_ui_init();
-	if (is_md5_enabled()) {
-		menuUnit_set_name(tmp, "<~root.disabled.md5>");
-		menuUnit_set_icon(tmp, "@alert");
-	} else {
-		menuUnit_set_name(tmp, "<~root.enabled.md5>");
-		menuUnit_set_icon(tmp, "@alert");
-	}
-	menuUnit_set_show(tmp, &enable_or_disable_md5_check);
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
-	md5_node = tmp;
-*/
+	//show dev opts 
+	 tmp = dev_ui_init();
+	 assert_if_fail(menuNode_add(p,tmp) == RET_OK);
+
         //root device 
 	/*
 	tmp = common_ui_init();
@@ -489,13 +587,6 @@ struct _menuUnit* root_ui_init() {
 	tmp->show = &root_device_item_show;
 	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
 
-	//set Brightness
-	tmp = brightness_ui_init();
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
-           
-	//ORS function 
-	tmp = ors_ui_init();
-	assert_if_fail(menuNode_add(p, tmp) == RET_OK);
 
 	//batarry wipe
           tmp = common_ui_init();

@@ -8,6 +8,8 @@
 #include <string.h>
 #include <libgen.h>
 
+#include "iniparser/iniparser.h"
+
 using namespace std;
 #define SCRIPT_COMMAND_SIZE 512
 #define ORS_TMP "/tmp/ors_tmp"

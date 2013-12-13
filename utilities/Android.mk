@@ -114,7 +114,6 @@ include $(BUILD_PREBUILT)
 
 endif
 
-
 ifeq ($(BOARD_HAS_NO_REAL_SDCARD),)
 	#parted
 	include $(CLEAR_VARS)

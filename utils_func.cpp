@@ -14,7 +14,6 @@
 #include <iostream>
 #include <iomanip>
 #include <sstream>
-
 #include "common.h"
 
 
@@ -64,7 +63,7 @@ bool utils::Make_MD5(string backup_path) {
 		return false;
 	} else {
        cout << "* Generating MD5 *" << endl;
-	for (int i = 0; i < file_list.size(); i++) {
+	for (unsigned int i = 0; i < file_list.size(); i++) {
 		Full_File = backup_path + "/" + file_list.at(i);
 
 			if (access(Full_File.c_str(), F_OK) == 0) {
@@ -97,7 +96,7 @@ bool utils::Check_MD5(string backup_path) {
 		return false;
 	} else {
        cout << "* Generating MD5 *" << endl;
-	for (int i = 0; i < file_list.size(); i++) {
+	for (unsigned int i = 0; i < file_list.size(); i++) {
 		Full_Filename = backup_path + "/" + file_list.at(i);
 
 			if (access(Full_Filename.c_str(), F_OK) == 0) {
@@ -160,5 +159,8 @@ int utils::write_file(string fn, string& line) {
 	LOGE("Cannot find file '%s'\n", fn.c_str());
 	return -1;
 }
+
+
+
 
 

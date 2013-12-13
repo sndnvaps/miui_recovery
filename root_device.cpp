@@ -81,7 +81,6 @@ using namespace std;
 	"/system/bin/.ext/.su",
 	"/system/app/Superuser.apk"
 };
-
 const char* super_su_list[] = {
 	"/supersu/Superuser.apk", //0
 	"/supersu/su",             //1 
@@ -690,7 +689,9 @@ void root_device::process_volumes() {
         ui_print("Done!\n");
         return;
     }
-   /* 
+
+    /*
+
     char backup_path[PATH_MAX];
     time_t t = time(NULL);
     char backup_name[PATH_MAX];
@@ -761,7 +762,6 @@ void root_device::change_sdcard_ext_sd_soft_link() {
 	}
 
 }
-
 
 
 

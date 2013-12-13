@@ -141,3 +141,15 @@ root.set.backup.format=Set default backup format
 root.enabled.md5=Enable md5 check the file
 root.disabled.md5=Disable md5 check the file
 
+root.CDI=Turn on/off device info check 
+root.CDI.on=Turn on
+root.CDI.off=Turn off
+
+root.md5sum=Turn on/off md5sum generate md5
+root.md5sum.on=Turn on
+root.md5sum.off=Turn off
+
+root.sigcheck=Sig check 
+root.dev=Dev Opt
+
+

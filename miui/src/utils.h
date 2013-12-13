@@ -32,9 +32,9 @@ typedef int u32;
 
 #define MIUI_NAME        "MIUI Rec by  LaoYang"
 //rom_version
-#define MIUI_VERSION     "v3.2.0"
+#define MIUI_VERSION     "v3.5.0"
 //rom date
-#define MIUI_BUILD       "2013-10-12"
+#define MIUI_BUILD       "2013-11-22"
 #define MIUI_BUILD_CN    "Sat"
 #define MIUI_BUILD_L     "sndnvaps"
 #define MIUI_BUILD_A     "<sndnvaps@gmail.com>"

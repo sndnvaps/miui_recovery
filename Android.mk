@@ -17,7 +17,8 @@ LOCAL_SRC_FILES := \
 	miui_func.cpp \
 	utils_func.cpp \
 	recovery.cpp \
-        sideload.cpp   	
+        sideload.cpp 
+        	
 
 
 
@@ -84,7 +85,8 @@ LOCAL_STATIC_LIBRARIES += libminzip libunz libmincrypt \
 			  libedify libcrecovery \
 			  libcrypto_static  \
 			  libmd5  libmiui
-LOCAL_STATIC_LIBRARIES += libft2 libpng libminadbd 			 
+LOCAL_STATIC_LIBRARIES += libft2 libpng libminadbd \
+	                   libiniparser 			  
 #LOCAL_STATIC_LIBRARIES += libminzip libunz libmtdutils libmincrypt
 LOCAL_SHARED_LIBRARIES +=  libext4_utils libz libmtdutils  \
 			   libflashutils libmmcutils \
@@ -166,6 +168,8 @@ include $(commands_recovery_local_path)/minelf/Android.mk
 #end
 #add libminadbd for sideload
 include $(commands_recovery_local_path)/minadbd/Android.mk
+#add libminui 
+include $(commands_recovery_local_path)/minui/Android.mk
 
 include $(commands_recovery_local_path)/minzip/Android.mk
 include $(commands_recovery_local_path)/mtdutils/Android.mk
@@ -196,5 +200,7 @@ include $(commands_recovery_local_path)/devices/Android.mk
 include $(commands_recovery_local_path)/device_image/Android.mk
 #add pigz to support tar.gz 
 include $(commands_recovery_local_path)/pigz/Android.mk
+#add libiniparser 
+include $(commands_recovery_local_path)/iniparser/Android.mk
 commands_recovery_local_path :=
 
