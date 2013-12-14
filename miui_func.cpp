@@ -54,12 +54,12 @@ int miui_func::write_md5digest(void) {
 	for (i = 0; i < 16; ++i) {
 		snprintf(hex, 3, "%02x", md5sum[i]);
 			md5string += hex;
-	//	md5string += hex;
 	}
 	md5string += " ";
 	md5string += basename((char*) md5fn.c_str());
 	md5string += + "\n";
 	utils::write_file(md5file, md5string);
+	LOGI("MD5 for %s: %s\n", md5fn.c_str(), md5string.c_str());
 	return 0;
 }
 
