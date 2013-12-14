@@ -53,15 +53,17 @@ extern "C" {
 
 dictionary * ini_install;
 
-int load_cotsettings()
-{
+int load_cotsettings() {
 	struct stat st;
 	miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
 	if (stat("/sdcard/miui_recovery/settings.ini", &st) != 0) {
 		fprintf(stderr, "Loading default settings.ini ...\n");
 		FILE *f = fopen("/sdcard/miui_recovery/settings.ini", "w+");
-		if (NULL == f)
+		if (NULL == f) {
 			printf("Error: Create settings.ini file failed !\n");
+			return 1;
+		} 
+
 		fprintf(f, "%s", "#settings.ini for miui recovery\n"
 				 "# miui recovery v3.5.0\n"
 				 "# modified by GTO LaoYang\n"
@@ -470,6 +472,7 @@ bool skip_check_device_info(char *ignore_device_info) {
                 miuiInstall_set_text(tmpbuf);
                 return true;
         }
-                return false;
+                
+	return false;
 }
 
