@@ -36,6 +36,7 @@ extern "C" {
 #include "mtdutils/mtdutils.h"
 #include "miui/src/miui.h"
 #include "iniparser/iniparser.h"
+#include "miui_intent.h" 	
 }
 
 #include "roots.h"
