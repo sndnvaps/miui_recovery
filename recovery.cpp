@@ -800,6 +800,7 @@ int main(int argc, char **argv) {
 #ifdef FIX_MTK_PLATFORM_SDCARD_SOFT_LINK
     load_volume->change_sdcard_ext_sd_soft_link(); // change the '/sdcard' && 'external_sd" soft link 
 #endif 
+    load_volume->load_def_settings(); //load def settings.ini
     ensure_path_mounted(LAST_LOG_FILE);
     rotate_last_logs(5);
     get_args(&argc, &argv);

@@ -49,6 +49,10 @@ class root_device {
 	     static void create_fstab();
 	     //check bml partition
 	     static int bml_check_volume(const char *path);
+
+	       //settings.ini
+	     string ini_files;
+	     void set_ini_files(string ini);
 	public:
 	     static void process_volumes();
 
@@ -63,6 +67,10 @@ class root_device {
 	      * 
 	      */
 	     void change_sdcard_ext_sd_soft_link();
+
+	     //load settings.ini
+	     int load_def_settings();
+
 	   
 };
 #endif
