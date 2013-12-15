@@ -805,6 +805,7 @@ int main(int argc, char **argv) {
     //process volume tables 
     root_device *load_volume = new(root_device);
     load_volume->process_volumes();
+    load_volume->load_def_settings(); //load def settings.ini
     ensure_path_mounted(LAST_LOG_FILE);
     rotate_last_logs(5);
     get_args(&argc, &argv);

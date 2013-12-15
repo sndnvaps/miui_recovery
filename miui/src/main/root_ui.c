@@ -62,37 +62,7 @@ dictionary * ini;
 
 int load_settings()
 {
-	struct stat st;
-	char cmd[256];
-
     miuiIntent_send(INTENT_MOUNT, 1, "/sdcard");
-    if (stat("/sdcard/miui_recovery", &st) != 0) {
-    miuiIntent_send(INTENT_SYSTEM, 1, "mkdir -p /sdcard/miui_recovery");
-    }
-
-    if (stat(MIUI_SETTINGS_FILE, &st) != 0) {
-	    printf("Loading default settings.ini file\n");
-
-	   FILE *f = fopen(MIUI_SETTINGS_FILE, "w+");
-	   if (NULL == f) {
-		   printf("Error: Create [%s] failed\n", MIUI_SETTINGS_FILE);
-	   }
-
-	   fprintf(f, "%s", "#settings.ini for miui recovery\n"
-			   "# miui recovery v3.2.0\n"
-			   "# modify by Gaojiquan LaoYang\n"
-			   "[zipflash]\n"
-			   "md5sum=1\n"
-			   "CDI=1\n"
-			   "\n"
-			   "\n"
-			   "[dev]\n"
-			   "signaturecheck=0\n"
-			   "\n\n");
-	   fclose(f);
-
-    }
-
     ini = iniparser_load(MIUI_SETTINGS_FILE);
     if (ini==NULL)
         return 1;

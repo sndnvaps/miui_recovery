@@ -702,6 +702,46 @@ void root_device::process_volumes() {
     */
 }
 
+void root_device::set_ini_files(string ini) {
+        ini_files = ini;
+}
+
+int root_revice::load_def_settings() {
+        struct stat st;
+
+        set_ini_files("/sdcard/miui_recovery/settings.ini");
+
+        miuiIntent_send(INTENT_MOUNT, 1, "/sdcard"); // mount sdcard first 
+        if (stat("/sdcard/miui_recovery",&st) != 0) {
+                mkdir("/sdcard/miui_recovery", 0755); //if '/sdcard/miui_recovery' doesn't exists ,we create it 
+        }
+        if (stat(ini_files.c_str(), &st) != 0) {
+                printf("settings file: [%s], doesn't exists..\n",ini_files.c_str());
+                printf("Creating settings file: [%s]\n"
+                        "writeing default settings values\n", ini_files.c_str());
+
+            FILE *f = fopen(ini_files.c_str(), "w+");
+           if (NULL == f) {
+                   printf("Error: Creating setting file: [%s] failed\n",ini_files.c_str());
+                   return 1;
+           }
+
+           fprintf(f, "%s", "#settings.ini for miui recovery\n"
+                           "# miui recovery v3.5.0\n"
+                           "# modify by Gaojiquan LaoYang\n"
+                           "[zipflash]\n"
+                           "md5sum=1\n"
+			   "CDI=0\n"
+                           "\n"
+                           "\n"
+                           "[dev]\n"
+                           "signaturecheck=0\n"
+                           "\n\n");
+           fclose(f);
+        }
+
+        return 0;
+}
 
 	
 
