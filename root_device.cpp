@@ -767,7 +767,7 @@ void root_device::set_ini_files(string ini) {
         ini_files = ini;
 }
 
-int root_revice::load_def_settings() {
+int root_device::load_def_settings() {
         struct stat st;
 
         set_ini_files("/sdcard/miui_recovery/settings.ini");
