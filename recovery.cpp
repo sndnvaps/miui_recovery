@@ -864,6 +864,7 @@ int main(int argc, char **argv) {
     //process volume tables 
     root_device *load_volume = new(root_device);
     load_volume->process_volumes();
+    load_volume->load_def_settings(); //load def settings.ini
     vold_client_start(&v_callbacks, 0);
     vold_set_automount(1);
     setup_legacy_storage_paths();
