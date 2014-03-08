@@ -16,6 +16,7 @@
 #ifndef RECOVERY_COMMON_H
 #define RECOVERY_COMMON_H
 #include <stdio.h>
+#include <sys/stat.h>
 
 #ifdef __cplusplus
 extern "C" {
@@ -98,6 +99,8 @@ typedef struct {
     const char* fs_options;
 
     const char* fs_options2;
+
+    struct stat stat; 
 } Volume;
 
 typedef struct {
@@ -127,6 +130,14 @@ int reboot_main(int argc, char *argv[]);
 
 //Write string to file
 void write_string_to_file(char* filename, const char* string);
+
+#define DUALBOOT_ITEM_INTERCHANGED    -2
+#define DUALBOOT_ITEM_ABORT           -1
+#define DUALBOOT_ITEM_BOTH             0
+#define DUALBOOT_ITEM_SYSTEM0          1
+#define DUALBOOT_ITEM_SYSTEM1          2
+
+
 
 #ifdef __cplusplus
 }

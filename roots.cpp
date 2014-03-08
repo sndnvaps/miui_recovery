@@ -38,6 +38,10 @@ extern "C" {
 #include "selinux/label.h" //get the struct selabel_handle;
 #include "selinux/selinux.h" 
 
+#ifndef major
+#include <sys/sysmacros.h>
+#endif
+
 #include "roots.h"
 #include "common.h"
 
@@ -171,6 +175,10 @@ void load_volume_table() {
 	   
 	    
 
+             int code;
+             if(code=stat(device, &device_volumes[num_volumes].stat)!=0)
+                 LOGE("stat: Error %d on file %s\n", code, device);
+	    
             if (parse_options(options, device_volumes + num_volumes) != 0) {
                 LOGE("skipping malformed recovery.fstab line: %s\n", original);
             } else {
@@ -639,4 +647,93 @@ int format_unknown_device(const char *device, const char* path, const char *fs_t
     ensure_path_unmounted(path);
     return 0;
 }
+
+int replace_device_node(Volume* vol, struct stat* stat) {
+     if(stat==NULL) return -1;
+ 
+     ssize_t len;
+     char resolved_path[PATH_MAX];
+     if((len = readlink(vol->device, resolved_path, sizeof(resolved_path)-1)) != -1)
+         resolved_path[len] = '\0';
+     else sprintf(resolved_path, "%s", vol->device);
+ 
+     if(ensure_path_unmounted(vol->mount_point)!=0) {
+         LOGE("replace_device_node: could not unmount device!\n");
+         return -1;
+     } if(unlink(resolved_path)!=0) {
+         LOGE("replace_device_node: could not delete node!\n");
+         return -1;
+     } if(mknod(resolved_path, stat->st_mode, stat->st_rdev)!=0) {
+         LOGE("replace_device_node: could not create node!\n");
+         return -1;
+     }
+     return 0;
+ }
+ 
+ int handle_volume_request(Volume* vol0, Volume* vol1, int num) {
+     if(vol0!=NULL && vol1!=NULL) {
+         Volume* v0;
+         Volume* v1;
+         if(num==DUALBOOT_ITEM_SYSTEM0) {
+             v0=vol0;
+             v1=vol0;
+         }
+         else if(num==DUALBOOT_ITEM_SYSTEM1) {
+             v0=vol1;
+             v1=vol1;
+         }
+         else if(num==DUALBOOT_ITEM_BOTH) {
+             v0=vol0;
+             v1=vol1;
+         }
+         else if(num==DUALBOOT_ITEM_INTERCHANGED) {
+             v0=vol1;
+             v1=vol0;
+         }
+         else {
+             LOGE("set_active_system: invalid system number: %d!\n", num);
+             return -1;
+         }
+ 
+         if(replace_device_node(vol0, &v0->stat)!=0)
+             return -1;
+         if(replace_device_node(vol1, &v1->stat)!=0)
+             return -1;
+ 
+         return 0;
+     }
+     else {
+         LOGE("set_active_system: invalid volumes given!\n");
+         return -1;
+     }
+ }
+ 
+ int selected_dualsystem_mode = -1;
+ int getDualsystemMode() {
+     return selected_dualsystem_mode;
+ }
+ 
+ int set_active_system(int num) {
+     int i;
+     char* mount_point;
+     Volume* system0 = volume_for_path("/system");
+     Volume* system1 = volume_for_path("/system1");
+     Volume* boot0 = volume_for_path("/boot");
+     Volume* boot1 = volume_for_path("/boot1");
+     Volume* radio0 = volume_for_path("/radio");
+     Volume* radio1 = volume_for_path("/radio1");
+ 
+     handle_volume_request(system0, system1, num);
+     handle_volume_request(boot0, boot1, num);
+     handle_volume_request(radio0, radio1, num);
+ 
+     if(ensure_path_unmounted("/data")!=0) {
+         LOGE("could not unmount /data!\n");
+         return -1;
+     }
+ 
+     selected_dualsystem_mode = num;
+ 
+     return 0;
+ }
 

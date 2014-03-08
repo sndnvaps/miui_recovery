@@ -559,10 +559,11 @@ static intentResult* intent_install(int argc, char *argv[])
  */
 static intentResult* intent_restore(int argc, char* argv[])
 {
-    return_intent_result_if_fail(argc == 7);
+    return_intent_result_if_fail(argc == 9);
     return_intent_result_if_fail(argv != NULL);
     int result = nandroid_restore(argv[0], atoi(argv[1]), atoi(argv[2]), atoi(argv[3]),
-                                  atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
+                                  atoi(argv[4]), atoi(argv[5]), atoi(argv[6]),
+				  atoi(argv[7]), atoi(argv[8]);
     assert_ui_if_fail(result == 0);
     return miuiIntent_result_set(result, NULL);
 }
@@ -683,6 +684,17 @@ static intentResult* intent_sideload(int argc, char* argv[])
    // return miuiIntent_result_set(0, NULL);
 }
 
+static intentResult* intent_setsystem(int argc, char* argv[])
+ {
+     if (strstr(argv[0], "0") != NULL) {
+         set_active_system(DUALBOOT_ITEM_BOTH);
+     } else if (strstr(argv[0], "1") != NULL) {
+         set_active_system(DUALBOOT_ITEM_SYSTEM0);
+     } else if (strstr(argv[0], "2") != NULL) {
+         set_active_system(DUALBOOT_ITEM_SYSTEM1);
+     }
+     return miuiIntent_result_set(0, NULL);
+ }
 
 
 static void
@@ -799,6 +811,7 @@ int main(int argc, char **argv) {
     miuiIntent_register(INTENT_RUN_ORS, &intent_run_ors);
     miuiIntent_register(INTENT_BACKUP_FORMAT, &intent_backup_format);
     miuiIntent_register(INTENT_SIDELOAD, &intent_sideload);
+    miuiIntent_register(INTENT_SETSYSTEM, &intent_setsystem);
 
     device_ui_init();
     load_volume_table();
