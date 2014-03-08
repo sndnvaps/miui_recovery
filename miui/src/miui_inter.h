@@ -29,9 +29,12 @@
 //
 #include <stdio.h>
 #include <stdlib.h>
+#include <stdbool.h>
 #include <math.h>
 #include <string.h>
 #include <unistd.h>
+#include <sys/ioctl.h>
+#include <sys/mman.h>
 #include <sys/wait.h>
 #include <sys/stat.h>
 #include <sys/types.h>
@@ -694,5 +697,13 @@ int file_scan(char *path, int path_len, char * title, int title_len, fileFun fun
 #endif
 #define STRINGIFY(x) #x
 #define EXPAND(x) STRINGIFY(x)
+
+#ifndef MSMFB_IOCTL_MAGIC
+#define MSMFB_IOCTL_MAGIC 'm'
+#endif
+#ifndef MSMFB_OVERLAY_VSYNC_CTRL
+#define MSMFB_OVERLAY_VSYNC_CTRL _IOW(MSMFB_IOCTL_MAGIC, 160, unsigned int)
+#endif
+
 
 #endif // __MIUI_H__

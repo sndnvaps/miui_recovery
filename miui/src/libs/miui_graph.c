@@ -24,6 +24,8 @@
 #include <signal.h>
 #include <fcntl.h>
 #include <linux/fb.h>
+#include <linux/kd.h>
+#include <pixelflinger/pixelflinger.h>
 #include <sys/mman.h>
 #include <pthread.h>
 #include <math.h>
@@ -338,6 +340,7 @@ byte ag_init(){
       ag_16w    = ag_fbf.line_length/2;
       if (ag_16w!=ag_fbv.xres){
         if (ag_16w/2==ag_fbv.xres){
+	  ag_fbf.line_length = ag_fbf.line_length / 2; 
           ag_16strd = 0;
           ag_16w    = ag_fbv.xres;
         }
@@ -348,8 +351,8 @@ byte ag_init(){
       
       if (ag_16strd==0){
         //-- Can Use memcpy
-        memcpy(ag_b,ag_fbuf,ag_fbsz);
-        memcpy(ag_c.data,ag_fbuf,ag_fbsz);
+        memcpy(ag_b,ag_fbuf,ag_fbsz*2);
+        memcpy(ag_c.data,ag_fbuf,ag_fbsz*2);
       }
       else{
         //-- Should Bit per bit
@@ -753,12 +756,20 @@ void ag_refreshrate(){
   //-- Force Refresh Display
   ag_fbv.yoffset   = 0;
   ag_fbv.activate |= FB_ACTIVATE_NOW | FB_ACTIVATE_FORCE;
-  ioctl(ag_fb, FBIOPUT_VSCREENINFO, &ag_fbv);  
+  ioctl(ag_fb, FBIOPUT_VSCREENINFO, &ag_fbv); 
+#ifdef NEEDS_VSYNC 
+ int e;
+ ioctl(ag_fb, MSMFB_OVERLAY_VSYNC_CTRL, &e);
+#endif  
 }
 
 byte ag_sync_locked = 0;
 //-- Sync Display
 void ag_sync(){
+#ifdef NEEDS_VSYNC
+	int e;
+	ioctl(ag_fb, MSMFB_OVERLAY_VSYNC_CTRL, &e);
+#endif 
   //-- Always On Footer
   // ag_draw_foot();
   ag_isbusy = 0;
@@ -783,12 +794,20 @@ void ag_sync(){
   }
 }
 void ag_sync_force(){
+#ifdef NEEDS_VSYNC
+     int e;
+     ioctl(ag_fb, MSMFB_OVERLAY_VSYNC_CTRL, &e);
+#endif
   if (ag_sync_locked)
     ag_sync_locked = 0;
   else
     ag_sync();
 }
 static void *ag_sync_fade_thread(void * cookie){
+#ifdef NEEDS_VSYNC
+    int e;
+    ioctl(ag_fb, MSMFB_OVERLAY_VSYNC_CTRL, &e);
+#endif
   miui_debug("pthread %s start...\n", __FUNCTION__);
   int frame = (int) cookie;
   ag_isbusy = 0;
@@ -852,10 +871,18 @@ static void *ag_sync_fade_thread(void * cookie){
   return NULL;
 }
 void ag_sync_fade_wait(int frame){
+#ifdef NEEDS_VSYNC
+    int e;
+    ioctl(ag_fb, MSMFB_OVERLAY_VSYNC_CTRL, &e);
+#endif
   ag_sync_fade_thread((void *) frame);
   return; 
 }
 void ag_sync_fade(int frame){
+#ifdef NEEDS_VSYNC
+   int e;
+   ioctl(ag_fb, MSMFB_OVERLAY_VSYNC_CTRL, &e);
+#endif
   pthread_t threadsyncfade;
   pthread_create(&threadsyncfade,NULL, ag_sync_fade_thread, (void *) frame);
   pthread_detach(threadsyncfade);

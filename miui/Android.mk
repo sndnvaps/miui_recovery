@@ -114,6 +114,11 @@ ifeq ($(BOARD_HAS_FLIPPED_SCREEN), true)
     LOCAL_CFLAGS += -DBOARD_HAS_FLIPPED_SCREEN
 endif
 
+ifeq ($(TARGET_NEEDS_VSYNC), true)
+	LOCAL_CFLAGS += -DNEEDS_VSYNC
+endif
+
+
 LOCAL_SHARED_LIBRARIES += libc libm libz
 LOCAL_STATIC_LIBRARIES := libft2 libpng \
 	                  libiniparser 
