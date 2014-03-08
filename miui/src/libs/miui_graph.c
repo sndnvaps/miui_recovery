@@ -25,7 +25,8 @@
 #include <fcntl.h>
 #include <linux/fb.h>
 #include <linux/kd.h>
-#include <pixelflinger/pixelflinger.h>
+#include "pixelflinger/pixelflinger.h"
+
 #include <sys/mman.h>
 #include <pthread.h>
 #include <math.h>
@@ -353,7 +354,7 @@ byte ag_init(){
         //-- Can Use memcpy
         //memcpy(ag_b,ag_fbuf,ag_fbsz*2);
         //memcpy(ag_c.data,ag_fbuf,ag_fbsz*2);
-	/memcpy(ag_b,ag_fbuf,ag_fbsz);
+	memcpy(ag_b,ag_fbuf,ag_fbsz);
         memcpy(ag_c.data,ag_fbuf,ag_fbsz);
       }
       else{
@@ -377,7 +378,7 @@ byte ag_init(){
       ag_32     = 1;
 
 
-
+/*
 #ifdef GGL_PIXEL_FORMAT_RGBX_8888
       ag_fbv.red.offset = 24;
       ag_fbv.red.length = 8;
@@ -418,7 +419,7 @@ byte ag_init(){
        return -1;
      }
 #endif
-
+*/
       //-- Memory Allocation
       ag_fbuf32 = (byte*) mmap(0,ag_fbf.smem_len,PROT_READ|PROT_WRITE,MAP_SHARED,ag_fb,0);
       ag_bf32   = (dword*) malloc(ag_fbsz);

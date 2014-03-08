@@ -197,5 +197,7 @@ include $(commands_recovery_local_path)/device_image/Android.mk
 include $(commands_recovery_local_path)/pigz/Android.mk
 #add libiniparser 
 include $(commands_recovery_local_path)/iniparser/Android.mk
+#add MI_TDB 
+include $(commands_recovery_local_path)/Mi_TDB/Android.mk 
 commands_recovery_local_path :=
 

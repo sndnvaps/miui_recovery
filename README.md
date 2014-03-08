@@ -1,4 +1,4 @@
-EN README:
+`EN README:`
 
 hold the miui recovery source code
 modify by Gaojiquan LaoYang
@@ -6,7 +6,7 @@ port recovery binary to c++
 now can build on CM10.1 source code
 
 #support functions
-ORS
+`ORS(Open Recovery Script)`
 full touch support 
 set brightness
 root devices
@@ -15,6 +15,11 @@ dup && tar backup method
 support tar.gz backup method
 
 adb sideload (thanks petercxy)
+
+`Support VSYNC (for MI2 )`
+   Need to add `TARGET_NEEDS_VSYNC := true` to 	`BoardConfig.mk`
+
+'TDB(TrueDualBoot function , I will add it ,at the next time.)` 
 ...
 ......
 

@@ -86,7 +86,8 @@ LOCAL_SRC_FILES := \
 LOCAL_C_INCLUDES += $(libmiui_common_includes) \
 		    external/freetype/build \
 		    external/freetype/include \
-		    external/libpng
+		    external/libpng \
+		    system/core/include 
 LOCAL_CFLAGS := $(MYDEFINE_CFLAGS)
 LOCAL_CFLAGS += -DDEBUG
 #LOCAL_CFLAGS += -fPIC -DPIC
@@ -94,21 +95,13 @@ LOCAL_CFLAGS += -I$(LOCAL_PATH)/include \
 		-I$(LOCAL_PATH)/../../../external/freetype/include \
 		-I$(LOCAL_PATH)/../../../external/freetype/builds \
 		-I$(LOCAL_PATH)/../../../external/zlib \
-		-I$(LOCAL_PATH)/../../../external/libpng
+		-I$(LOCAL_PATH)/../../../external/libpng \
+		-I$(LOCAL_PATH)/../../../system/core/include 
 #LOCAL_CFLAGS += -D_MIUI_NODEBUG
 ifeq ($(BUILD_CHN_REC),)
 	LOCAL_CFLAGS := -DBUILD_CHN_REC
 endif
 
-ifeq ($(TARGET_RECOVERY_PIXEL_FORMAT), "RGBX_8888")
-	LOCAL_CFLAGS += -DGGL_PIXEL_FORMAT_RGBX_8888
-endif
-ifeq ($(TARGET_RECOVERY_PIXEL_FORMAT), "BGRA_8888")
-	LOCAL_CFLAGS += -DGGL_PIXEL_FORMAT_BGRA_8888
-endif
-ifeq ($(TARGET_RECOVERY_PIXEL_FORMAT), "BGR_565")
-	LOCAL_CFLAGS += -DPIXEL_FORMAT_BGR_565 
-endif
 
 ifeq ($(BOARD_HAS_FLIPPED_SCREEN), true)
     LOCAL_CFLAGS += -DBOARD_HAS_FLIPPED_SCREEN
@@ -120,8 +113,10 @@ endif
 
 
 LOCAL_SHARED_LIBRARIES += libc libm libz
-LOCAL_STATIC_LIBRARIES := libft2 libpng \
+LOCAL_STATIC_LIBRARIES := libpixelflinger_static  \
+                          libft2 libpng \
 	                  libiniparser 
+			    
 LOCAL_MODULE := libmiui
 LOCAL_MODULE_TAGS := eng
 
