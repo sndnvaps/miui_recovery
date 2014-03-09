@@ -254,6 +254,21 @@ int ag_changcolor(char ch1, char ch2, char ch3, char ch4)
     return 0;
 }
 
+#ifdef DUALSYSTEM_PARTITIONS
+// only xiaomi devices have dual system and need the following code
+void ag_fb_blank(int blank)
+{
+
+   int ret;
+    ret = ioctl(ag_fb, FBIOBLANK, blank ? FB_BLANK_POWERDOWN : FB_BLANK_UNBLANK); 	
+
+    if (ret < 0)
+        perror("ioctl(): blank"); 	
+
+}
+#endif
+
+
 /*********************************[ FUNCTIONS ]********************************/
 //-- INITIALIZING AMARULLZ GRAPHIC
 byte ag_init(){
@@ -280,40 +295,7 @@ byte ag_init(){
     
     //-- Init Frame Buffer
     fprintf(stderr, "\n\nPixel format: %dx%d @ %dbpp\n\n", ag_fbv.xres, ag_fbv.yres, ag_fbv.bits_per_pixel);
-   // miui_debug("ag_fbv.bits_per_pixel = %d\n", ag_fbv.bits_per_pixel);
-   /* want to add in the source code */
-    /*
-     vi.bits_per_pixel = PIXEL_SIZE * 8;
-    if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_BGRA_8888) {
-      vi.red.offset     = 8;
-      vi.red.length     = 8;
-      vi.green.offset   = 16;
-      vi.green.length   = 8;
-      vi.blue.offset    = 24;
-      vi.blue.length    = 8;
-      vi.transp.offset  = 0;
-      vi.transp.length  = 8;
-    } else if (PIXEL_FORMAT == GGL_PIXEL_FORMAT_RGBX_8888) {
-      vi.red.offset     = 24;
-      vi.red.length     = 8;
-      vi.green.offset   = 16;
-      vi.green.length   = 8;
-      vi.blue.offset    = 8;
-      vi.blue.length    = 8;
-      vi.transp.offset  = 0;
-      vi.transp.length  = 8;
-    } else {  //RGB565
-      vi.red.offset     = 11;
-      vi.red.length     = 5;
-      vi.green.offset   = 5;
-      vi.green.length   = 6;
-      vi.blue.offset    = 0;
-      vi.blue.length    = 5;
-      vi.transp.offset  = 0;
-      vi.transp.length  = 0;
-    }
    
-    */
 
    if (ag_fbv.bits_per_pixel==16){
      /*RGB565*/
@@ -333,6 +315,11 @@ byte ag_init(){
       }
       ag_32   = 0;
       ag_fbuf = (word*) mmap(0,ag_fbf.smem_len,PROT_READ|PROT_WRITE,MAP_SHARED,ag_fb,0);
+      if (ag_fbuf == MAP_FAILED) { //add for xiaomi 
+	      perror("failed to mmap framebuffer");
+	      close(ag_fb);
+	      return -1;
+      }
       ag_b    = (word*) malloc(ag_fbsz);
       ag_bz   = (word*) malloc(ag_fbsz);
       
@@ -378,48 +365,6 @@ byte ag_init(){
       ag_32     = 1;
 
 
-/*
-#ifdef GGL_PIXEL_FORMAT_RGBX_8888
-      ag_fbv.red.offset = 24;
-      ag_fbv.red.length = 8;
-      ag_fbv.green.offset = 16;
-      ag_fbv.green.length = 8;
-      ag_fbv.blue.offset = 8;
-      ag_fbv.blue.length = 8;
-      ag_fbv.transp.offset = 0;
-      ag_fbv.transp.length = 8;
-#endif
-
-#ifdef GGL_PIXEL_FORMAT_BGRA_8888
-      ag_fbv.red.offset = 8;
-      ag_fbv.red.length = 8;
-      ag_fbv.green.offset = 16;
-      ag_fbv.green.length = 8;
-      ag_fbv.blue.offset = 24;
-      ag_fbv.blue.length = 8;
-      ag_fbv.transp.offset = 0;
-      ag_fbv.transp.length = 8;
-#endif
-
-#ifdef GGL_PIXEL_FORMAT_RGBX_8888 
-
-       if (ioctl(ag_fb, FBIOPUT_VSCREENINFO, &ag_fbv) < 0)
-      {
-          perror("failed to put fb0 info");
-          close(ag_fb);
-          return -1;
-      }
-
-#endif  
-
-#ifdef GGL_PIXEL_FORMAT_BGRA_8888
-     if (ioctl(ag_fb, FBIOPUT_VSCREENINFO, &ag_fbv) < 0) {
-	   perror("Failed to put fb0 info");
-	 close(ag_fb);
-       return -1;
-     }
-#endif
-*/
       //-- Memory Allocation
       ag_fbuf32 = (byte*) mmap(0,ag_fbf.smem_len,PROT_READ|PROT_WRITE,MAP_SHARED,ag_fb,0);
       ag_bf32   = (dword*) malloc(ag_fbsz);
@@ -443,6 +388,12 @@ byte ag_init(){
       }
     }
     
+#ifdef DUALSYSTEM_PARTITIONS 
+    //Only xiaomi devices has dual system and needs the following code
+    ag_fb_blank(1);
+    ag_fb_blank(0);
+#endif
+
     //-- Refresh Draw Lock Thread
     ag_isrun = 1;
     pthread_create(&ag_pthread, NULL, ag_thread, NULL);

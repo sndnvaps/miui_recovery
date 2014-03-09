@@ -55,7 +55,8 @@ int is_path_mounted(const char* path);
 
 int format_unknown_device(const char *device, const char* path, const char *fs_type);
 int format_device(const char *device, const char *path, const char *fs_type) ;
-int has_datadata() ;
+int has_datadata();
+int set_active_system(int num);
 #ifdef __cplusplus
 }
 #endif

@@ -85,6 +85,7 @@ wipe.dalvik-cache.name=擦除dalvik-cache
 wipe.factory.name=清空所有数据
 wipe.data.name=格式化data
 format.system.name=格式化system分区
+format.system1.name=格式化system1分区
 format.data.name=格式化data分区
 format.cache.name=格式化cache分区
 format.boot.name=格式化boot分区

@@ -4,7 +4,7 @@
 //
 //
 #include "utils.h"
-typedef int STATUS;
+typedef int STATUS; //remove by dnv aps 
 #define RET_OK 0
 #define RET_FAIL -1
 #define RET_INVALID_ARG -1

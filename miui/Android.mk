@@ -74,7 +74,7 @@ libmiui_common_src_files := \
     libs/png/pngread.c \
     libs/png/pngrio.c \
     libs/png/pngrtran.c \
-    libs/png/pngrutil.c \
+    libs/png/pngrutil.c\
     libs/png/pngset.c \
     libs/png/pngtrans.c \
     libs/png/pngvcrd.c \
@@ -89,7 +89,7 @@ LOCAL_C_INCLUDES += $(libmiui_common_includes) \
 		    external/libpng \
 		    system/core/include 
 LOCAL_CFLAGS := $(MYDEFINE_CFLAGS)
-LOCAL_CFLAGS += -DDEBUG
+#LOCAL_CFLAGS += -DDEBUG
 #LOCAL_CFLAGS += -fPIC -DPIC
 LOCAL_CFLAGS += -I$(LOCAL_PATH)/include \
 		-I$(LOCAL_PATH)/../../../external/freetype/include \
@@ -102,7 +102,7 @@ ifeq ($(BUILD_CHN_REC),)
 	LOCAL_CFLAGS += -DBUILD_CHN_REC
 endif
 
-ifeq ($(BOARD_HAS_DUALSYSTEM_PARTITIONS), true)
+ifeq ($(RECOVERY_HAS_DUALSYSTEM_PARTITIONS), true)
 	LOCAL_CFLAGS += -DDUALSYSTEM_PARTITIONS
 endif
 

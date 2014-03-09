@@ -41,8 +41,9 @@ int file_install(char *file_name, int file_len, void *data)
     }
       else {
         miuiIntent_send(INTENT_SETSYSTEM,1,"0");
-         return -1;
-    
+        return -1;
+    }
+      return -1; //set default return 
 }
 //callback funtion file filter, if access ,return 0; others return -1
 int file_filter(char *file, int file_len)
@@ -149,3 +150,4 @@ struct _menuUnit * sd_ui_init()
 
     return p;
 }
+

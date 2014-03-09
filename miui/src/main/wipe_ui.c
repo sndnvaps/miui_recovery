@@ -110,10 +110,8 @@ STATUS wipe_item_show(menuUnit *p)
 
 STATUS wipe_menu_show(menuUnit *p)
 {
-    return_val_if_fail(p != NULL, RET_FAIL);
-    
-
-   int n = p->get_child_count(p);
+     return_val_if_fail(p != NULL, RET_FAIL);
+     int n = p->get_child_count(p);
      int selindex = 0;
      return_val_if_fail(n >= 1, RET_FAIL);
      return_val_if_fail(n < ITEM_COUNT, RET_FAIL);
@@ -146,7 +144,7 @@ STATUS wipe_menu_show(menuUnit *p)
     assert_if_fail(menuNode_add(p, temp) == RET_OK);
     return_null_if_fail(menuUnit_set_name(temp, "<~wipe.factory.name>") == RET_OK);
     return_null_if_fail(menuUnit_set_result(temp, WIPE_FACTORY) == RET_OK);
-    return_null_if_fail(RET_OK == menuUnit_set_show(temp, &wipe_item_show);
+    return_null_if_fail(RET_OK == menuUnit_set_show(temp, &wipe_item_show));
     
     
     //wipe_data
@@ -208,7 +206,7 @@ STATUS wipe_menu_show(menuUnit *p)
      return_null_if_fail(menuUnit_set_result(temp, FORMAT_BOOT) == RET_OK);
      return_null_if_fail(RET_OK == menuUnit_set_show(temp, &wipe_item_show));
 #endif
-    
+   /* for debug 
     //format SDCARD
     temp = common_ui_init();
     assert_if_fail(menuNode_add(p, temp) == RET_OK);
@@ -221,7 +219,7 @@ STATUS wipe_menu_show(menuUnit *p)
     return_null_if_fail(menuUnit_set_name(temp, "<~format.all.name>") == RET_OK);
     return_null_if_fail(menuUnit_set_result(temp, FORMAT_ALL) == RET_OK);
     return_null_if_fail(RET_OK == menuUnit_set_show(temp, &wipe_item_show));
- 
+ */
     return p;
  }
 
