@@ -115,16 +115,20 @@ LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/sbin
 LOCAL_SRC_FILES := $(LOCAL_MODULE)
 include $(BUILD_PREBUILT)
 
-ifeq ($(BUILD_CHN_REC),)
-	include $(CLEAR_VARS)
+#for truetype font
+include $(CLEAR_VARS)
 LOCAL_MODULE := DroidSansFallback.ttf
 LOCAL_MODULE_TAGS := eng
 LOCAL_MODULE_CLASS := RECOVERY_EXECUTABLES
 LOCAL_MODULE_PATH := $(TARGET_RECOVERY_ROOT_OUT)/res/ttf
-LOCAL_SRC_FILES := $(LOCAL_MODULE)
+
+ifeq ($(TARGET_BOOTLOADER_NAME), aries)
+	LOCAL_SRC_FILES := DroidSanFallback_MI2.ttf
+else
+      LOCAL_SRC_FILES := $(LOCAL_MODULE)
+ endif
 include $(BUILD_PREBUILT)
 
-endif
 
 ifeq ($(BOARD_HAS_NO_REAL_SDCARD),)
 	#parted
