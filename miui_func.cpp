@@ -60,6 +60,7 @@ int miui_func::write_md5digest(void) {
 	md5string += basename((char*) md5fn.c_str());
 	md5string += + "\n";
 	utils::write_file(md5file, md5string);
+LOGI("MD5 for %s: %s\n", md5fn.c_str(), md5string.c_str());
 	return 0;
 }
 

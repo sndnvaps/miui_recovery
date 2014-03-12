@@ -26,7 +26,7 @@ extern "C" {
 void load_volume_table();
 
 // Return the Volume* record for this path (or NULL).
-Volume* volume_for_path(const char* path);
+Volume_  *volume_for_path(const char* path);
 
 // Make sure that the volume 'path' is on is mounted.  Returns 0 on
 // success (volume is mounted).
@@ -49,7 +49,7 @@ void setup_legacy_storage_paths();
 int get_num_extra_volumes();
 int get_num_volumes();
 
-Volume* get_device_volumes();
+Volume_* get_device_volumes();
 
 int is_data_media();
 void setup_data_media();
@@ -63,6 +63,7 @@ int format_device(const char *device, const char *path, const char *fs_type) ;
 
 int has_datadata() ;
 
+int set_active_system(int num);
 void ignore_data_media_workaround(int ignore);
 
 #define MAX_NUM_MANAGED_VOLUMES 10

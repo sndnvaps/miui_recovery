@@ -96,10 +96,10 @@ int maybe_install_firmware_update(const char *send_intent) {
     if (set_bootloader_message(&boot)) return -1;
 
     int width = 0, height = 0, bpp = 0;
-    char *busy_image = ui_copy_image(
-        BACKGROUND_ICON_FIRMWARE_INSTALLING, &width, &height, &bpp);
-    char *fail_image = ui_copy_image(
-        BACKGROUND_ICON_FIRMWARE_ERROR, &width, &height, &bpp);
+    //char *busy_image = ui_copy_image(
+     //   BACKGROUND_ICON_FIRMWARE_INSTALLING, &width, &height, &bpp);
+    //char *fail_image = ui_copy_image(
+    //    BACKGROUND_ICON_FIRMWARE_ERROR, &width, &height, &bpp);
 
     ui_print("Writing %s image...\n", update_type);
   /*  if (write_update_for_bootloader(
@@ -111,8 +111,8 @@ int maybe_install_firmware_update(const char *send_intent) {
     }
     */
 
-    free(busy_image);
-    free(fail_image);
+    //free(busy_image);
+   // free(fail_image);
 
     /* The update image is fully written, so now we can instruct the bootloader
      * to install it.  (After doing so, it will come back here, and we will

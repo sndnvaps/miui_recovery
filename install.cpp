@@ -21,6 +21,8 @@
 #include <sys/stat.h>
 #include <sys/wait.h>
 #include <unistd.h>
+#include <stdio.h>
+#include <stdlib.h>
 #include <stdbool.h>
 
 #include "common.h"
@@ -33,6 +35,7 @@ extern "C" {
 #include "mtdutils/mounts.h"
 #include "mtdutils/mtdutils.h"
 #include "miui/src/miui.h"
+#include "iniparser/iniparser.h"
 }
 
 #include "roots.h"
@@ -47,7 +50,6 @@ extern "C" {
 
 #define UPDATER_API_VERSION 3 // this should equal RECOVERY_API_VERSION , define in Android.mk 
 
-bool skip_check_device_info(char *ignore_device_info);
 
 
 // The update binary ask us to install a firmware file on reboot.  Set
@@ -75,7 +77,7 @@ static int  handle_firmware_update(char* type, char* filename, ZipArchive* zip) 
     LOGI("type is %s; size is %d; file is %s\n",
          type, data_size, filename);
 
-    char* data = malloc(data_size);
+    char* data = (char*)malloc(data_size);
     if (data == NULL) {
         LOGI("Can't allocate %d bytes for firmware data\n", data_size);
         return INSTALL_ERROR;
@@ -113,8 +115,23 @@ static int  handle_firmware_update(char* type, char* filename, ZipArchive* zip) 
 
 static const char *LAST_INSTALL_FILE = "/cache/recovery/last_install";
 
+dictionary * ini_install;
+
+int load_cotsettings()
+{
+    ini_install = iniparser_load("/sdcard/miui_recovery/settings.ini");
+    if (ini_install==NULL)
+        return 1;
+        
+    return 0;
+}
+
+
+
+bool skip_check_device_info(char *ignore_device_info);
+			
 // If the package contains an update binary, extract it and run it.
-static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache) {
+static int try_update_binary(const char *path, ZipArchive *zip) {
     const ZipEntry* binary_entry =
             mzFindZipEntry(zip, ASSUMED_UPDATE_BINARY_NAME);
     struct stat st;
@@ -133,15 +150,25 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         return INSTALL_UPDATE_BINARY_MISSING;
     }
 
-    char* binary = "/tmp/update_binary";
-    unlink(binary);
-    int fd = creat(binary, 0755);
+    string binary_str = "/tmp/updater";
+    unlink(binary_str.c_str());
+   
+   int fd;
+  if (0 > ( fd = open(binary_str.c_str(), (O_CREAT|O_WRONLY|O_TRUNC), 0755))) {
+		   printf("create /tmp/updater error (%s)\n", strerror(errno));
+  }
+
+
+	   
     if (fd < 0) {
         mzCloseZipArchive(zip);
-        LOGE("Can't make %s\n", binary);
+        LOGE("Can't make %s\n", binary_str.c_str());
         return 1;
     }
+
+
     bool ok = mzExtractZipEntryToFile(zip, binary_entry, fd);
+
     close(fd);
     mzCloseZipArchive(zip);
 
@@ -152,40 +179,17 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     }
 
 
-    //If exists, extract file_contexts from the zip file
-    //Thanks twrp's Dees-Troy
-    // begin -->
-    const ZipEntry* selinx_contexts = mzFindZipEntry(zip, "file_contexts");
-    if (selinx_contexts == NULL) {
-	    mzCloseZipArchive(zip);
-	    LOGI("Zip does not contain SElinux file_contexts file in its root.\n");
-    } else {
-	    char *output_filename = "/file_contexts";
-	    LOGI("Zip contains SElinux file_contexts file in its root. Extracting to '%s'\n", output_filename);
-
-	    //Delete any file_contexts
-	    if (stat(output_filename,&st) == 0) 
-		    unlink(output_filename);
-
-	    int file_contexts_fd = creat(output_filename, 0644);
-	    if (file_contexts_fd < 0) {
-		    mzCloseZipArchive(zip);
-		    LOGE("Could not extract file_contexts to '%s'\n", output_filename);
-		    return INSTALL_ERROR;
-	    }
-
-	    ok = mzExtractZipEntryToFile(zip, selinx_contexts, file_contexts_fd);
-    close(file_contexts_fd);
-
-    if (!ok) {
-	    mzCloseZipArchive(zip);
-	    LOGE("Could not extract '%s'\n",ASSUMED_UPDATE_BINARY_NAME);
-	    return INSTALL_ERROR;
+ 
+    int currstatus;
+    if (1==load_cotsettings()) {
+        return INSTALL_CORRUPT;
     }
-    mzCloseZipArchive(zip);
-    }
-    // <-- end 
+    
+    currstatus = iniparser_getboolean(ini_install, "zipflash:CDI", -1);
+    iniparser_freedict(ini_install);
 
+
+       
 
 
     int pipefd[2];
@@ -226,12 +230,13 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     //   - the name of the package zip file.
     //
 
-    char** args = (char**)malloc(sizeof(char*) * 5);
-    args[0] = binary;
+    const char** args = ( const char**)malloc(sizeof(char*) * 5);
+    args[0] = binary_str.c_str();
     //args[1] = EXPAND(RECOVERY_API_VERSION);   // defined in Android.mk
     args[1] = (char*)EXPAND(UPDATER_API_VERSION);
-    args[2] = (char*)malloc(10);
-    sprintf(args[2], "%d", pipefd[1]);
+    char *temp = (char*)malloc(10);
+    sprintf(temp, "%d", pipefd[1]);
+    args[2] = temp;
     args[3] = (char*)path;
     args[4] = NULL;
 
@@ -239,8 +244,9 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     if (pid == 0) {
 	setenv("UPDATE_PACKAGE", path, 1);
         close(pipefd[0]);
-        execv(binary, args);
-        fprintf(stdout, "E:Can't run %s (%s)\n", binary, strerror(errno));
+        execv(binary_str.c_str(),(char* const *) args);
+        fprintf(stdout, "E:Can't run %s (%s)\n", binary_str.c_str(), strerror(errno));
+
         _exit(-1);
     }
     close(pipefd[1]);
@@ -248,21 +254,24 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
     char *firmware_type = NULL;
     char *firmware_filename = NULL;
 
-    *wipe_cache = 0;
-
     char buffer[1024];
+
     FILE* from_child = fdopen(pipefd[0], "r");
     while (fgets(buffer, sizeof(buffer), from_child) != NULL) {
         char* command = strtok(buffer, " \n");
         if (command == NULL) {
             continue;
          } else if (strcmp(command, "assert") == 0) {
+		 if (currstatus) {
                 char *ignore_device_info = strtok(NULL, " \n");
                 if (skip_check_device_info(ignore_device_info)) 
                         continue;
                 char *ignore_device_info_part_two = strtok(NULL, "||");
                 if (skip_check_device_info(ignore_device_info_part_two))
-                        continue;         
+                        continue;     
+		 } else {
+		 printf("assert command checking \n");
+		 }	 
         } else if (strcmp(command, "progress") == 0) {
             char* fraction_s = strtok(NULL, " \n");
             char* seconds_s = strtok(NULL, " \n");
@@ -296,7 +305,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
                 snprintf(tmpbuf, 255, "<#selectbg_g><b>\n</b></#>");
             miuiInstall_set_text(tmpbuf);
         } else if (strcmp(command, "wipe_cache") == 0) {
-            *wipe_cache = 1;
+           // *wipe_cache = 1;
         } else if (strcmp(command, "minzip:") == 0) {
             char* str = strtok(NULL, "\n");
             miuiInstall_set_info(str);
@@ -318,6 +327,7 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         }
     }
     fclose(from_child);
+    
 
     int status;
     
@@ -330,17 +340,21 @@ static int try_update_binary(const char *path, ZipArchive *zip, int* wipe_cache)
         return INSTALL_ERROR;
     }
 
+
     if (firmware_type != NULL) {
         int ret = handle_firmware_update(firmware_type, firmware_filename, zip);
         mzCloseZipArchive(zip);
         return ret;
     }
+
     mzCloseZipArchive(zip); 
     return INSTALL_SUCCESS;
 }
 
 
+
 static int really_install_package(const char *path)
+
 {
     ui_set_background(BACKGROUND_ICON_INSTALLING);
     ui_print("Finding update package...\n");
@@ -354,7 +368,7 @@ static int really_install_package(const char *path)
         if (rest != NULL) {
             int readlink_length;
             int root_length = rest - path;
-            char *root = malloc(root_length + 1);
+            char *root = (char*)malloc(root_length + 1);
             strncpy(root, path, root_length);
             root[root_length] = 0;
             readlink_length = readlink(root, new_path, PATH_MAX);
@@ -375,9 +389,20 @@ static int really_install_package(const char *path)
 
     ui_print("Opening update package...\n");
 
-    int err;
+
  // check the signature 
-  if (signature_check_enabled) {
+     int currstatus;
+    if (1==load_cotsettings()) {
+        return INSTALL_CORRUPT;
+    }
+    
+    currstatus = iniparser_getboolean(ini_install, "dev:signaturecheck", -1);
+    iniparser_freedict(ini_install);
+
+     int err = 0;	     
+
+    if (currstatus == 1) {
+
         int numKeys;
         Certificate* loadedKeys = load_keys(PUBLIC_KEYS_FILE, &numKeys);
         if (loadedKeys == NULL) {
@@ -397,15 +422,16 @@ static int really_install_package(const char *path)
         LOGI("verify_file returned %d\n", err);
         if (err != VERIFY_SUCCESS) {
             LOGE("signature verification failed\n");
-            ui_show_text(1);
-            if (!confirm_selection("Install Untrusted Package?", "Yes - Install untrusted zip"))
                 return INSTALL_CORRUPT;
         }
     }
+  
 
     /* Try to open the package.
      */
+ 
     ZipArchive zip;
+     err = 0;
     err = mzOpenZipArchive(path, &zip);
     if (err != 0) {
         LOGE("Can't open %s\n(%s)\n", path, err != -1 ? strerror(err) : "bad");
@@ -415,7 +441,9 @@ static int really_install_package(const char *path)
     /* Verify and install the contents of the package.
      */
     ui_print("Installing update...\n");
+
     return try_update_binary(path, &zip);
+
 }
 
 int
@@ -428,7 +456,7 @@ install_package(const char* path)
     } else {
         LOGE("failed to open last_install: %s\n", strerror(errno));
     }
-    int result = really_install_package(path, wipe_cache);
+    int result = really_install_package(path);
     if (install_log) {
         fputc(result == INSTALL_SUCCESS ? '1' : '0', install_log);
         fputc('\n', install_log);
@@ -449,7 +477,7 @@ bool skip_check_device_info(char *ignore_device_info) {
         if (strstr(ignore_device_info, "ro.product.device") != NULL ||
                         strstr(ignore_device_info, "ro.build.product") != NULL ||
                         strstr(ignore_device_info, "ro.product.board") != NULL ||
-                        ststr(ignore_device_info, "ro.sdupdate.Check_info") != NULL) {
+                        strstr(ignore_device_info, "ro.sdupdate.Check_info") != NULL) {
                 snprintf(tmpbuf, 255, "<#selectbg_g><b>Ignore device_info_check \n</b></#>");
                 miuiInstall_set_text(tmpbuf);
                 return true;

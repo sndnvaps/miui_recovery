@@ -91,8 +91,8 @@ static int mount_usb()
     int ret = 0;
     int fd;
     char value[PROPERTY_VALUE_MAX];
-    Volume *vol = volume_for_path("/sdcard");
-    Volume *vol_ext = volume_for_path("/external_sd");
+    Volume_ *vol = volume_for_path("/sdcard");
+    Volume_ *vol_ext = volume_for_path("/external_sd");
     
     char lunfilename[PATH_MAX];
 
@@ -111,7 +111,7 @@ static int mount_usb()
         ret = -1;
         goto next;
     }
-    if ((write(fd, vol->device, strlen(vol->device)) < 0) && (!vol->device2 || (write(fd, vol->device2, strlen(vol->device2)) < 0))) 
+    if ((write(fd, vol->blk_device, strlen(vol->blk_device)) < 0) ) 
     {
         LOGE("Unable to write to ums lunfile 0 (%s)", strerror(errno));
         ret = -1;
@@ -125,7 +125,7 @@ next:
         ret = -1;
         goto next_next;
     }
-    if ((write(fd, vol_ext->device, strlen(vol_ext->device)) < 0) && (!vol_ext->device2 || (write(fd, vol_ext->device2, strlen(vol_ext->device2)) < 0))) 
+    if ((write(fd, vol_ext->blk_device, strlen(vol_ext->blk_device)) < 0)) 
     {
         LOGE("Unable to write to ums lunfile 1 (%s)", strerror(errno));
         ret = -1;
@@ -138,7 +138,7 @@ next_next:
 	    ret = -1;
 	    goto out;
     }
-    if ((write(fd, vol->device, strlen(vol->device)) < 0) || ( write(fd, vol_ext->device, strlen(vol_ext->device)) < 0)) {
+    if ((write(fd, vol->blk_device, strlen(vol->blk_device)) < 0)) {
 	    LOGE("Unable to write ums lunfile (%s)", strerror(errno));
 	    ret = -1;
     }

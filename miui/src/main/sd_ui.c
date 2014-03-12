@@ -21,12 +21,30 @@ int file_install(char *file_name, int file_len, void *data)
     return_val_if_fail(file_name != NULL, RET_FAIL);
     return_val_if_fail(strlen(file_name) <= file_len, RET_INVALID_ARG);
     return_val_if_fail(data != NULL, RET_FAIL);
+#ifdef DUALSYSTEM_PARTITIONS
+     int choose_system_num;
+     if (is_tdb_enabled()) {
+         if (RET_YES == miui_confirm(5, "<~choose.system.title>", "<~choose.system.text>", "@alert", "<~choice.system0.name>", "<~choice.system1.name>")) {
+             miuiIntent_send(INTENT_SETSYSTEM,1,"1");
+         } else {
+             miuiIntent_send(INTENT_SETSYSTEM,1,"2");
+         }
+     
+     }
+#endif
+
     struct _menuUnit *p = (pmenuUnit)data;
     if (RET_YES == miui_confirm(3, p->name, p->desc, p->icon)) {
-        miuiIntent_send(INTENT_INSTALL, 3, file_name, "0", "1");
+        miuiIntent_send(INTENT_INSTALL, 1, file_name);
+miuiIntent_send(INTENT_SETSYSTEM,1,"0");
         return 0;
     }
-    else return -1;
+      else {
+        miuiIntent_send(INTENT_SETSYSTEM,1,"0");
+      return -1;
+    }
+
+     return -1; //set default return 
 }
 //callback funtion file filter, if access ,return 0; others return -1
 int file_filter(char *file, int file_len)
@@ -80,9 +98,22 @@ static STATUS sd_update_show(menuUnit *p)
 {
     char new_path[SD_MAX_PATH] = "/sdcard/update.zip";
     int wipe_cache = 0;
+#ifdef DUALSYSTEM_PARTITIONS
+     int choose_system_num;
+     if (is_tdb_enabled()) {
+         if (RET_YES == miui_confirm(5, "<~choose.system.title>", "<~choose.system.text>", "@alert", "<~choice.system0.name>", "<~choice.system1.name>")) {
+             miuiIntent_send(INTENT_SETSYSTEM,1,"1");
+         } else {
+             miuiIntent_send(INTENT_SETSYSTEM,1,"2");
+         }
+     
+     }
+#endif
+
     if (RET_YES == miui_confirm(3, p->name, p->desc, p->icon)) {
-        miuiIntent_send(INTENT_INSTALL, 3, new_path, "0", "1");
+        miuiIntent_send(INTENT_INSTALL, 1, new_path);
     }
+    miuiIntent_send(INTENT_SETSYSTEM,1,"0");
     return MENU_BACK;
 }
 struct _menuUnit * sd_ui_init()
@@ -120,3 +151,4 @@ struct _menuUnit * sd_ui_init()
 
     return p;
 }
+

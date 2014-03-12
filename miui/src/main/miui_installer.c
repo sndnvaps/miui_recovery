@@ -10,7 +10,7 @@
  * Unless required by applicable law or agreed to in writing, software
  * distributed under the License is distributed on an "AS IS" BASIS,
  * WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
- * See the License for the specific language governing permissions and
+ * See the License for the specificlanguage governing permissions and
  * limitations under the License.
  */ 
 /*
@@ -160,7 +160,8 @@ static void *miui_install_package(void *cookie){
     if (pmiui_install->pfun != NULL)
     {
         //run install process
-        ret = pmiui_install->pfun(pmiui_install->path, &pmiui_install->wipe_cache, pmiui_install->install_file);
+       // ret = pmiui_install->pfun(pmiui_install->path, &pmiui_install->wipe_cache, pmiui_install->install_file);
+	ret = pmiui_install->pfun(pmiui_install->path);
         if (pmiui_install->wipe_cache)
             miuiIntent_send(INTENT_WIPE, 1 , "/cache");
         miuiInstall_set_progress(1);
@@ -488,11 +489,11 @@ int miui_start_install(
   return WEXITSTATUS(ai_return_status);
 }
 
-STATUS miuiInstall_init(miuiInstall_fun fun, char* path, int wipe_cache, const char* install_file)
+STATUS miuiInstall_init(miuiInstall_fun fun, char* path)
 {
     pmiui_install->path = path;
-    pmiui_install->wipe_cache = wipe_cache;
-    pmiui_install->install_file = install_file;
+    //pmiui_install->wipe_cache = wipe_cache;
+    //pmiui_install->install_file = install_file;
     pmiui_install->pfun = fun;
     return RET_OK;
 }

@@ -23,12 +23,7 @@ class utils : public miui_func {
 	    static int read_file(string fn, string& result); //read from file
 	    static int write_file(string fn, string& line); // write from file
 	
-	private:
-	//	miui_func md5sum;
-		 //int count;
-		 //int f_alloc;
-		// char **filename;
-		// void free_string_array(char** arrary);
+
 
 
 };

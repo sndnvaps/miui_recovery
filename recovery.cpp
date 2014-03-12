@@ -48,16 +48,17 @@ extern "C" {
 #include "cutils/properties.h"
 #include "cutils/android_reboot.h"
 #include "libcrecovery/common.h"
-#include "yaffs2_static/mkyaffs2image.h"
-#include "yaffs2_static/unyaffs.h"
 #include "flashutils/flashutils.h"
-#include "voldclient/voldclient.h"
 }
+//#include "voldclient/voldclient.h"
+#include "voldclient/voldclient.hpp" 
 
 #include "firmware.h"
 #include "recovery_cmds.h"
 #include "nandroid.h"
 #include "root_device.hpp"
+
+#include "Volume.h" //for State_* 
 
 extern struct selabel_handle * sehandle = NULL; 
 static const struct option OPTIONS[] = {
@@ -82,7 +83,6 @@ static const char *SDCARD_ROOT = "/sdcard";
 static const char *TEMPORARY_LOG_FILE = "/tmp/miui_recovery.log";
 static const char *TEMPORARY_INSTALL_FILE = "/tmp/last_install";
 static const char *SIDELOAD_TEMP_DIR = "/tmp/sideload";
-
 
 
 /*
@@ -627,12 +627,12 @@ static intentResult * intent_reboot(int argc, char *argv[])
 //INTENT_INSTALL install path, wipe_cache, install_file
 static intentResult* intent_install(int argc, char *argv[])
 {
-    return_intent_result_if_fail(argc == 3);
+    return_intent_result_if_fail(argc == 1);
     return_intent_result_if_fail(argv != NULL);
-    int wipe_cache = atoi(argv[1]);
-    int echo = atoi(argv[2]);
-    miuiInstall_init(&install_package, argv[0], wipe_cache, TEMPORARY_INSTALL_FILE);
-    miui_install(echo);
+    //int wipe_cache = atoi(argv[1]);
+    //int echo = atoi(argv[2]);
+    miuiInstall_init(&install_package, argv[0]);
+    //miui_install(echo);
     //echo install failed
     return miuiIntent_result_set(RET_OK, NULL);
 }
@@ -643,10 +643,11 @@ static intentResult* intent_install(int argc, char *argv[])
  */
 static intentResult* intent_restore(int argc, char* argv[])
 {
-    return_intent_result_if_fail(argc == 7);
+    return_intent_result_if_fail(argc == 9);
     return_intent_result_if_fail(argv != NULL);
     int result = nandroid_restore(argv[0], atoi(argv[1]), atoi(argv[2]), atoi(argv[3]),
-                                  atoi(argv[4]), atoi(argv[5]), atoi(argv[6]));
+                                  atoi(argv[4]), atoi(argv[5]), atoi(argv[6]),
+                                  atoi(argv[7]), atoi(argv[8]));
     assert_ui_if_fail(result == 0);
     return miuiIntent_result_set(result, NULL);
 }
@@ -738,7 +739,7 @@ static intentResult* intent_backup_format(int argc, char *argv[]) {
 		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"dup");
 		printf("Set backup format to dup\n");
 	} else if (strncmp(argv[0], "tar",3) == 0) {
-		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
+         	write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tar");
 		printf("Set backup format to tar\n");
 	} else if (strncmp(argv[0], "tgz",3) == 0) {
 		write_string_to_file(NANDROID_BACKUP_FORMAT_FILE,"tgz");
@@ -767,6 +768,17 @@ static intentResult* intent_sideload(int argc, char* argv[])
    // return miuiIntent_result_set(0, NULL);
 }
 
+static intentResult* intent_setsystem(int argc, char* argv[])
+ {
+     if (strstr(argv[0], "0") != NULL) {
+         set_active_system(DUALBOOT_ITEM_BOTH);
+     } else if (strstr(argv[0], "1") != NULL) {
+         set_active_system(DUALBOOT_ITEM_SYSTEM0);
+     } else if (strstr(argv[0], "2") != NULL) {
+         set_active_system(DUALBOOT_ITEM_SYSTEM1);
+     }
+     return miuiIntent_result_set(0, NULL);
+ }
 
 
 static void
@@ -776,8 +788,8 @@ print_property(const char *key, const char *name, void *cookie) {
 
 static void setup_adbd() {
 	struct stat st;
-	static char* key_src = "/data/misc/adb/adb_keys";
-	static char* key_dest = "/adb_keys";
+	static char* key_src = (char*)"/data/misc/adb/adb_keys";
+	static char* key_dest = (char*)"/adb_keys";
 	//Mount /data and copy adb_keys to root if it exists
 	miuiIntent_send(INTENT_MOUNT, 1, "/data");
 	if (stat(key_src, &st) == 0) { //key_src exists
@@ -811,7 +823,7 @@ static void setup_adbd() {
 void reboot_main_system(int cmd, int flags, char *arg) {
     //verify_root_and_recovery();
     finish_recovery(NULL); // sync() in here
-    vold_unmount_all();
+    VoldClient::vold_unmount_all();
     android_reboot(cmd, flags, arg);
 }
 
@@ -831,20 +843,20 @@ static int handle_volume_hotswap(char* label, char* path) {
 
 static int handle_volume_state_changed(char* label, char* path, int state) {
     int log = -1;
-    if (state == State_Checking || state == State_Mounted || state == State_Idle) {
+    if (state == Volume::State_Checking || state == Volume::State_Mounted || state == Volume::State_Idle) {
         // do not ever log to screen mount/unmount events for sdcards
         if (strncmp(path, "/storage/sdcard", 15) == 0)
             log = 0;
         else log = 1;
     }
-    else if (state == State_Formatting || state == State_Shared) {
+    else if (state == Volume::State_Formatting || state == Volume::State_Shared) {
             log = 1;
     }
 
     if (log == 0)
-        LOGI("%s: %s\n", path, volume_state_to_string(state));
+        LOGI("%s: %s\n", path, VoldClient::volume_state_to_string(state));
     else if (log == 1)
-        ui_print("%s: %s\n", path, volume_state_to_string(state));
+        ui_print("%s: %s\n", path, VoldClient::volume_state_to_string(state));
 
     return 0;
 }
@@ -857,7 +869,28 @@ static struct vold_callbacks v_callbacks = {
 
 int main(int argc, char **argv) {
 
-        //for adb sideload 
+    // Recovery needs to install world-readable files, so clear umask
+    // set by init
+    umask(0);
+
+   time_t start = time(NULL);
+
+    // If these fail, there's not really anywhere to complain...
+#ifndef DEBUG
+    unlink(TEMPORARY_LOG_FILE);
+#endif
+
+    freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
+    freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
+
+ // If this binary is started with the single argument "--adbd",
+    // instead of being the normal recovery binary, it turns into kind
+    // of a stripped-down version of adbd that only supports the
+    // 'sideload' command.  Note this must be a real argument, not
+    // anything in the command file or bootloader control block; the
+    // only way recovery should be run with this argument is when it
+    // starts a copy of itself from the apply_from_adb() function.
+ 
 	if (argc == 2 && strcmp(argv[1], "--adbd") == 0) {
 		adb_main();
 		return 0;
@@ -875,7 +908,7 @@ int main(int argc, char **argv) {
         if (cmd.name)
             return cmd.main_func(argc, argv);
 
-	#ifdef BOARD_RECOVERY_HANDLES_MOUNT
+#ifdef BOARD_RECOVERY_HANDLES_MOUNT
         if (!strcmp(command, "mount") && argc == 2)
         {
             load_volume_table();
@@ -895,23 +928,14 @@ int main(int argc, char **argv) {
             property_set("ctl.stop", argv[1]);
             return 0;
         }
-        return busybox_driver(argc, argv);
+        return 0;
     }
 
     int is_user_initiated_recovery = 0;   
-    time_t start = time(NULL);
-
-    // If these fail, there's not really anywhere to complain...
-#ifndef DEBUG
-    unlink(TEMPORARY_LOG_FILE);
-#endif
-
-    freopen(TEMPORARY_LOG_FILE, "a", stdout); setbuf(stdout, NULL);
-    freopen(TEMPORARY_LOG_FILE, "a", stderr); setbuf(stderr, NULL);
     printf("Starting recovery on %s", ctime(&start));
 
     //miuiIntent init
-    miuiIntent_init(10);
+    miuiIntent_init(20);
     miuiIntent_register(INTENT_MOUNT, &intent_mount);
     miuiIntent_register(INTENT_ISMOUNT, &intent_ismount);
     miuiIntent_register(INTENT_UNMOUNT, &intent_unmount);
@@ -929,14 +953,15 @@ int main(int argc, char **argv) {
     miuiIntent_register(INTENT_RUN_ORS, &intent_run_ors);
     miuiIntent_register(INTENT_BACKUP_FORMAT, &intent_backup_format);
     miuiIntent_register(INTENT_SIDELOAD, &intent_sideload);
+    miuiIntent_register(INTENT_SETSYSTEM, &intent_setsystem);
 
     device_ui_init();
     load_volume_table();
     //process volume tables 
     root_device *load_volume = new(root_device);
     load_volume->process_volumes();
-    vold_client_start(&v_callbacks, 0);
-    vold_set_automount(1);
+    VoldClient::vold_client_start(&v_callbacks, 0);
+    VoldClient::vold_set_automount(1);
     setup_legacy_storage_paths();
     ensure_path_mounted(LAST_LOG_FILE);
     rotate_last_logs(10);
@@ -965,7 +990,6 @@ int main(int argc, char **argv) {
         case 'c': wipe_cache = 1; break;
 	case 'h':
 	    //ui_set_background(BACKGROUND_ICON_CID);
-            ui_show_text(0);
             headless = 1;
             break;
         //case 't': ui_show_text(1); break;
@@ -1047,10 +1071,10 @@ int main(int argc, char **argv) {
 	//we are starting up in user initiated recovery here
 	//let's set up some defaut options;
 	ui_set_background(BACKGROUND_ICON_INSTALLING);
-	if( 0 == root.check_for_script_file("/cache/recovery/openrecoveryscript")) {
+	if( 0 == load_volume->check_for_script_file("/cache/recovery/openrecoveryscript")) {
 		LOGI("Runing openrecoveryscript...\n");
 		int ret;
-		if (0 == (ret = root.run_ors_script("/tmp/openrecoveryscript"))) {
+		if (0 == (ret = load_volume->run_ors_script("/tmp/openrecoveryscript"))) {
 			status = INSTALL_SUCCESS;
 			//ui_set_show_text(0);
 		} else {
@@ -1070,7 +1094,7 @@ int main(int argc, char **argv) {
     // Otherwise, get ready to boot the main system...
     finish_recovery(send_intent);
 
-    vold_unmount_all(); // unmount all the partition 
+    VoldClient::vold_unmount_all(); // unmount all the partition 
 
     sync();
 

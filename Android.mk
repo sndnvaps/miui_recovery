@@ -15,6 +15,7 @@ LOCAL_SRC_FILES := \
 	reboot.cpp \
 	miui_func.cpp \
 	utils_func.cpp \
+	bootloader.cpp \
 	recovery.cpp 
 	
 
@@ -44,11 +45,6 @@ endif
 LOCAL_STATIC_LIBRARIES :=
 LOCAL_SHARED_LIBRARIES := 
 
-ifeq ($(TARGET_USERIMAGES_USE_EXT4), true)
-LOCAL_CFLAGS += -DUSE_EXT4
-LOCAL_C_INCLUDES += system/extras/ext4_utils
-LOCAL_SHARED_LIBRARIES += libext4_utils libz
-endif
 
 ifeq ($(BOARD_HAS_REMOVABLE_STORAGE), true) 
 	LOCAL_CFLAGS += -DBOARD_HAS_REMOVABLE_STORAGE
@@ -65,12 +61,15 @@ $(foreach board_define,$(BOARD_RECOVERY_DEFINES), \
   )
 
 LOCAL_STATIC_LIBRARIES :=
+ifeq ($(RECOVERY_HAVE_SELINUX),true)
+	LOCAL_CFLAGS += -DRECOVERY_HAVE_SELINUX
+endif
 
 LOCAL_CFLAGS += -DUSE_EXT4 -DMINIVOLD
 LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include external/fsck_msdos
 LOCAL_C_INCLUDES += system/vold
 
-LOCAL_STATIC_LIBRARIES += libext4_utils_static libz libsparse_static
+LOCAL_STATIC_LIBRARIES +=  libz libsparse_static
 
 # This binary is in the recovery ramdisk, which is otherwise a copy of root.
 # It gets copied there in config/Makefile.  LOCAL_MODULE_TAGS suppresses
@@ -93,19 +92,20 @@ LOCAL_C_INCLUDES += bionic \
 
 LOCAL_CFLAGS += -DHAVE_SELINUX
 
-LOCAL_STATIC_LIBRARIES += libvoldclient libsdcard \
-			  libminipigz libfsck_msdos
+LOCAL_STATIC_LIBRARIES +=  libsdcard \
+			  libfsck_msdos libvold 
 
 LOCAL_STATIC_LIBRARIES += libminzip libunz libmincrypt \
-			  libmkyaffs2image_static \
-			  libunyaffs_static \
+			  libmkyaffs2image libunyaffs \
 			  libdedupe libselinux \
 			  libedify libcrecovery \
 			  libcrypto_static  \
 			  libmd5  libmiui
 
-LOCAL_STATIC_LIBRARIES += libft2 libpng libminadbd \
-			  libfs_mgr liblog libbusybox  
+
+LOCAL_STATIC_LIBRARIES += libminadbd \
+			  libfs_mgr  \
+			  libiniparser
 
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
  LOCAL_CFLAGS += -DUSE_F2FS
@@ -119,10 +119,9 @@ LOCAL_SHARED_LIBRARIES +=  libext4_utils libz libmtdutils  \
 			   libbmlutils  liberase_image \
 			   libdump_image libflash_image \
 			   libcutils libstdc++ libc libm \
-			   libsparse libstlport
+			   libsparse libstlport libpng  \
+			   libaosprecovery libft2  liblog 
 
-LOCAL_SHARED_LIBRARIES += \
-			  libaosprecovery
 LOCAL_LDFLAGS := -ldl 
 LOCAL_LDFLAGS += -Wl,--no-fatal-warnings
 
@@ -139,12 +138,16 @@ RECOVERY_LINKS := bu edify  flash_image dump_image mkyaffs2image \
 	unyaffs erase_image nandroid reboot  dedupe minizip \
 	start stop setup_adbd fsck_msdos newfs_msdos vdc \
 	sdcard  
-#for selinux 
+
+#for selinux
+ifeq ($(RECOVERY_HAVE_SELINUX),true)
 RECOVERY_LINKS += \
 		  getenforce setenforce \
 		  chcon runcon \
 		  getsebool setsebool \
-		  load_policy 
+		  load_policy restorecon 
+endif
+
 ifeq ($(TARGET_USERIMAGES_USE_F2FS), true)
  RECOVERY_LINKS += mkfs.f2fs fsck.f2fs fibmap.f2fs
  endif
@@ -199,16 +202,19 @@ include $(CLEAR_VARS)
 LOCAL_MODULE := libaosprecovery
 LOCAL_MODULE_TAGS := eng
 LOCAL_MODULES_TAGS = optional
-LOCAL_CFLAGS = 
+LOCAL_CFLAGS := 
 LOCAL_SRC_FILES = sideload.cpp  \
-		  bootloader.cpp \
-		  verifier.cpp \
 		  ../../system/core/toolbox/newfs_msdos.c \
                   ../../system/core/toolbox/dynarray.c \
+		  ../../system/core/toolbox/getprop.c \
+		  ../../system/core/toolbox/setprop.c \
                   ../../system/vold/vdc.c \
-                   prop.c
-
-ifeq ($(HAVE_SELINUX),true)
+		  voldclient/voldclient.cpp  
+		  #voldclient/commands.c \
+		  voldclient/dispatcher.c \
+		  voldclient/event_loop.c 
+LOCAL_CFLAGS += -DMINIVOLD -Werror 
+ifeq ($(RECOVERY_HAVE_SELINUX),true)
 LOCAL_SRC_FILES += \
 	../../system/core/toolbox/getenforce.c \
 	../../system/core/toolbox/setenforce.c \
@@ -219,12 +225,17 @@ LOCAL_SRC_FILES += \
 	../../system/core/toolbox/setsebool.c \
 	../../system/core/toolbox/load_policy.c
 
+LOCAL_C_INCLUDES +=  external/libselinux/include
+LOCAL_SHARED_LIBRARIES += libselinux 
+
 endif
 
-LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include
+LOCAL_C_INCLUDES += system/extras/ext4_utils system/core/fs_mgr/include \
+		    system/core/include \
+		    system/vold
 LOCAL_SHARED_LIBRARIES += libc liblog libcutils libmtdutils \
 			  libstdc++
-LOCAL_STATIC_LIBRARIES += libmincrypt
+LOCAL_STATIC_LIBRARIES += libmincrypt libvold
 
 include $(BUILD_SHARED_LIBRARY)
 
@@ -263,8 +274,6 @@ include $(commands_recovery_local_path)/applypatch/Android.mk
 include $(commands_recovery_local_path)/dedupe/Android.mk
 #add some shell script
 include $(commands_recovery_local_path)/utilities/Android.mk
-#add yaffs2_static
-include $(commands_recovery_local_path)/yaffs2_static/Android.mk
 #add digest
 include $(commands_recovery_local_path)/digest/Android.mk
 #add device conf
@@ -272,8 +281,9 @@ include $(commands_recovery_local_path)/devices/Android.mk
 #include $(commands_recovery_local_path)/su/Android.mk
 #add device_image
 include $(commands_recovery_local_path)/device_image/Android.mk
-#add pigz to support tar.gz 
-include $(commands_recovery_local_path)/pigz/Android.mk
-include $(commands_recovery_local_path)/voldclient/Android.mk
+#include $(commands_recovery_local_path)/voldclient/Android.mk
+#add libiniparser 
+include $(commands_recovery_local_path)/iniparser/Android.mk
+include $(commands_recovery_local_path)/Mi_TDB/Android.mk
 commands_recovery_local_path :=
 

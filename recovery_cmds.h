@@ -28,14 +28,11 @@ extern "C" {
 #include "nandroid.h"
 #include "dedupe/dedupe.h"
 
-extern int minizip_main(int argc, char **argv);
 extern int flash_image_main(int argc, char **argv);
-extern int edify_main(int argc, char **argv);
 extern int dump_image_main(int argc, char **argv);
 extern int erase_image_main(int argc, char **argv);
 extern int mkyaffs2image_main(int argc, char **argv);
 extern int unyaffs_main(int argc, char **argv);
-extern int make_ext4fs_main(int argc, char **argv);
 extern int reboot_main(int argc, char **argv);
 extern int poweroff_main(int argc, char **argv);
 extern int setprop_main(int argc, char **argv);
@@ -43,23 +40,22 @@ extern int getprop_main(int argc, char **argv);
 extern int fsck_msdos_main(int argc, char **argv);
 extern int newfs_msdos_main(int argc, char **argv);
 extern int vdc_main(int argc, char **argv);
-extern int pigz_main(int argc, char **argv);
 extern int sdcard_main(int argc, char **argv);
 #ifdef USE_F2FS
 extern int make_f2fs_main(int argc, char **argv);
 extern int fsck_f2fs_main(int argc, char **argv);
 extern int fibmap_main(int argc, char **argv);
 #endif
-#ifdef HAVE_SELINUX
-extern int getenforce_mian(int argc, char **argv);
-extern int setenforce_mian(int argc, char **argv);
+#ifdef RECOVERY_HAVE_SELINUX
+extern int getenforce_main(int argc, char **argv);
+extern int setenforce_main(int argc, char **argv);
 extern int chcon_main(int argc, char **argv);
 extern int runcon_main(int argc, char **argv);
 extern int getsebool_main(int argc, char **argv);
 extern int setsebool_main(int argc, char **argv);
 extern int load_policy_main(int argc, char **argv);
+extern int restorecon_main(int argc, char **argv);
 #endif
-extern int busybox_driver(int argc, char **argv);
 
 struct recovery_cmd {
     const char *name;
@@ -67,16 +63,12 @@ struct recovery_cmd {
 };
 
 static const struct recovery_cmd recovery_cmds[] = {
-    { "minizip",        minizip_main },
     { "dedupe",         dedupe_main },
     { "flash_image",    flash_image_main },
-    { "volume",         volume_main },
-    { "edify",          edify_main },
     { "dump_image",     dump_image_main },
     { "erase_image",    erase_image_main },
     { "mkyaffs2image",  mkyaffs2image_main },
     { "unyaffs",        unyaffs_main },
-    { "make_ext4fs",    make_ext4fs_main },
     { "nandroid",       nandroid_main },
     { "bu",             bu_main },
     { "reboot",         reboot_main },
@@ -86,16 +78,16 @@ static const struct recovery_cmd recovery_cmds[] = {
     { "fsck_msdos",     fsck_msdos_main },
     { "newfs_msdos",    newfs_msdos_main },
     { "vdc",            vdc_main },
-    { "pigz",           pigz_main },
     { "sdcard",         sdcard_main },
 #ifdef USE_F2FS
     { "mkfs.f2fs",      make_f2fs_main },
     { "fsck.f2fs",      fsck_f2fs_main },
     { "fibmap.f2fs",    fibmap_main },
 #endif
-#ifdef HAVE_SELINUX
-    { "getenforce",     getenforce_main },
-    { "setenforce",     setenforce_main },
+#ifdef RECOVERY_HAVE_SELINUX
+    { "getenforce",      getenforce_main },
+    { "setenforce",      setenforce_main },
+    { "restorecon",      restorecon_main },
     { "chcon",          chcon_main },
     { "runcon",         runcon_main },
     { "getsebool",      getsebool_main },

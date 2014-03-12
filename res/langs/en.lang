@@ -25,6 +25,12 @@ default_name=default_name
 default_title=default_title
 default_desc=Are you sure do it?
 
+choice.system0.name=system1
+choice.system1.name=system2
+choose.system.title=Choose system
+choose.system.text=Choose a system to perform the action.
+
+
 mainmenu.name=MAIN MENU
 mainmenu.title_name=MAIN MENU
 mainmenu.install.name=install from SD
@@ -53,6 +59,8 @@ reboot.null= reboot
 reboot.null.title= reboot now
 reboot.recovery= reboot to recovery
 reboot.bootloader= reboot to bootloader
+reboot.system0=reboot to system1
+reboot.system1=reboot to system2
 reboot.poweroff= poweroff
 
 alert.result=FAIL!
@@ -63,6 +71,7 @@ mount.title=mount and toogle usb storage
 mount.cache.name=mount cache
 mount.data.name=mount data
 mount.system.name=mount system
+mount.system.name=mount system1 
 mount.sdcard.name=mount sdcard
 mount.toggle.name=toggle usb storage
 mount.sdext.name= mount internal sd
@@ -71,12 +80,14 @@ wipe.name=wipe or format
 wipe.title=wipe data or format partation operation
 wipe.cache.name=wipe cache
 wipe.dalvik-cache.name=wipe dalvik-cache
-wipe.factory.name=wipe cache/factory reset
+wipe.factory.name=wipe all
 wipe.data.name=wipe data
 format.system.name=format system
+format.system1.name=format system1
 format.data.name=format data
 format.cache.name=format cache
 format.boot.name=format boot
+format.boot1.name=format boot1
 format.sdcard.name=format sdcard
 format.all.name=format all(except sdcard and boot)
 
@@ -88,16 +99,20 @@ advanced_backup.name=advanced backup
 advanced_backup.cache.name=backup cache
 advanced_backup.data.name=backup data
 advanced_backup.system.name=backup system
+advanced_backup.system1.name=backup system1
 advanced_backup.boot.name=backup boot
+advanced_backup.boot1.name=backup boot1
 advanced_backup.recovery.name=backup recovery
 advanced_restore.name=advanced restore
 advanced_restore.cache.name=restore cache
 advanced_restore.data.name=restore data
 advanced_restore.system.name=restore system
+advanced_restore.sys.name=restore system1
 advanced_restore.boot.name=restore boot
+advanced_restore.boot1.name=restore boot1
 advanced_restore.recovery.name=restore recovery
 
-tool.name=tool
+tool.name=advanced
 tool.title=advanced tools
 tool.key.name=key test
 tool.time.name=timer setting
@@ -109,6 +124,11 @@ tool.root.name= root your device
 tool.recovery.name=disable restore rec from boot.p
 tool.sideload.name=install package via sideload
 tool.sideload.desc=package received, confirm install?
+tool.enable.tdb=enable truedualboot
+tool.disable.tdb=disable truedualboot
+tool.tdb.desc=This will wipe all data!
+
+
 
 info.name=info
 info.title=information of miui recovery
@@ -140,4 +160,16 @@ root.set.backup.format=Set default backup format
 
 root.enabled.md5=Enable md5 check the file
 root.disabled.md5=Disable md5 check the file
+
+root.CDI=Turn on/off device info check 
+root.CDI.on=Turn on
+root.CDI.off=Turn off
+
+root.md5sum=Turn on/off md5sum generate md5
+root.md5sum.on=Turn on
+root.md5sum.off=Turn off
+
+root.sigcheck=Sig check 
+root.dev=Dev Opt
+
 

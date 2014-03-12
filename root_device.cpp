@@ -589,22 +589,22 @@ int root_device::Exec_Cmd(string path, string &result) {
 }
 
 
-void root_device::write_fstab_root(char *path, FILE *file)
+void root_device::write_fstab_root(string path, FILE *file)
 {
-    Volume *vol = volume_for_path(path);
+    Volume_ *vol = volume_for_path(path.c_str());
     if (vol == NULL) {
-        LOGW("Unable to get recovery.fstab info for %s during fstab generation!\n", path);
+        LOGW("Unable to get recovery.fstab info for %s during fstab generation!\n", path.c_str());
         return;
     }
 
     char device[200];
-    if (vol->device[0] != '/')
-        get_partition_device(vol->device, device);
+    if (vol->blk_device[0] != '/')
+        get_partition_device(vol->blk_device, device);
     else
-        strcpy(device, vol->device);
+        strcpy(device, vol->blk_device);
 
     fprintf(file, "%s ", device);
-    fprintf(file, "%s ", path);
+    fprintf(file, "%s ", path.c_str());
     // special case rfs cause auto will mount it as vfat on samsung.
     fprintf(file, "%s rw\n", vol->fs_type2 != NULL && strcmp(vol->fs_type, "rfs") != 0 ? "auto" : vol->fs_type);
 }
@@ -618,7 +618,7 @@ void root_device::create_fstab()
         LOGW("Unable to create /etc/fstab!\n");
         return;
     }
-    Volume *vol = volume_for_path("/boot");
+    Volume_ *vol = volume_for_path("/boot");
     if (NULL != vol && strcmp(vol->fs_type, "mtd") != 0 && strcmp(vol->fs_type, "emmc") != 0 && strcmp(vol->fs_type, "bml") != 0)
          root_device::write_fstab_root("/boot", file);
     root_device::write_fstab_root("/cache", file);
@@ -641,7 +641,7 @@ int root_device::bml_check_volume(const char *path) {
         return 0;
     }
     
-    Volume *vol = volume_for_path(path);
+    Volume_ *vol = volume_for_path(path);
     if (vol == NULL) {
         LOGE("Unable process volume! Skipping...\n");
         return 0;
@@ -649,7 +649,7 @@ int root_device::bml_check_volume(const char *path) {
     
     ui_print("%s may be rfs. Checking...\n", path);
     char tmp[PATH_MAX];
-    sprintf(tmp, "mount -t rfs %s %s", vol->device, path);
+    sprintf(tmp, "mount -t rfs %s %s", vol->blk_device, path);
     int ret = __system(tmp);
     printf("%d\n", ret);
     return ret == 0 ? 1 : 0;
@@ -701,4 +701,7 @@ void root_device::process_volumes() {
     ui_set_show_text(0);
     */
 }
+
+
+	
 

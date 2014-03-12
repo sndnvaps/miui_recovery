@@ -8,6 +8,8 @@
 #include <string.h>
 #include <libgen.h>
 
+#include "iniparser/iniparser.h"
+
 using namespace std;
 #define SCRIPT_COMMAND_SIZE 512
 #define ORS_TMP "/tmp/ors_tmp"
@@ -42,14 +44,13 @@ class root_device {
 
         private:
             //write fstab info to /etc/fstab
-             static void write_fstab_root(char *path, FILE *file);
+             static void write_fstab_root(string path, FILE *file);
              //create_fstab
              static void create_fstab();
              //check bml partition
              static int bml_check_volume(const char *path);
         public:
              static void process_volumes();
-	    
 
 	   
 };

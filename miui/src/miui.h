@@ -236,7 +236,7 @@ STATUS miui_set_isbgredraw(int value);
  *@DESCRIPTION:make install pacage, be invoked by installer
  */
 
-typedef int (*miuiInstall_fun)(const char* path, int *wipe_cache,const char* install_file);
+typedef int (*miuiInstall_fun)(const char* path);
 typedef struct _miuiInstall {
     miuiInstall_fun pfun;
     char *path;
@@ -244,7 +244,7 @@ typedef struct _miuiInstall {
     int wipe_cache;
 }miuiInstall, *pmiuiInstall;
 //for install init 
-STATUS miuiInstall_init(miuiInstall_fun fun, char *path, int wipe_cache,const char* install_file);
+STATUS miuiInstall_init(miuiInstall_fun fun, char *path);
 
 void miuiInstall_show_progress(float portion, int seconds);
 void miuiInstall_set_progress(float fraction);
