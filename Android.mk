@@ -137,7 +137,7 @@ include $(BUILD_EXECUTABLE)
 RECOVERY_LINKS := bu edify  flash_image dump_image mkyaffs2image \
 	unyaffs erase_image nandroid reboot  dedupe minizip \
 	start stop setup_adbd fsck_msdos newfs_msdos vdc \
-	sdcard  
+	sdcard volume 
 
 #for selinux
 ifeq ($(RECOVERY_HAVE_SELINUX),true)
